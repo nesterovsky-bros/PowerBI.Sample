@@ -1,0 +1,112 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Data ID",
+            "name": "id",
+            "kind": "Measure",
+            "requiredTypes": 
+            [
+                {
+                    "text": true
+                },
+                {
+                    "numeric": true
+                },
+                {
+                    "integer": true
+                }
+            ],
+            "preferredTypes": [
+                {
+                    "text": true
+                }
+            ]
+        },
+        {
+            "displayName": "Check indicator",
+            "name": "check",
+            "kind": "Measure",
+            "requiredTypes": 
+            [
+                {
+                    "bool": true
+                }
+            ],
+            "preferredTypes": [
+                {
+                    "bool": true
+                }
+            ]
+        },
+        {
+            "displayName": "Comment",
+            "name": "comment",
+            "kind": "Measure",
+            "requiredTypes": 
+            [
+                {
+                    "text": true
+                }
+            ],
+            "preferredTypes": [
+                {
+                    "text": true
+                }
+            ]
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "id": {
+                        "max": 1
+                    },
+                    "check": {
+                        "max": 1
+                    },
+                    "comment": {
+                        "max": 1
+                    }
+                }
+            ],
+            "categorical": {
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "id"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "check"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "comment"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "objects": 
+    {
+        "updateObject": {
+            "displayName": "Update opbject",
+            "properties": 
+            {
+                "endpoint": {
+                    "displayName": "endpoint url",
+                    "type": 
+                    {
+                        "text": true
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,96 @@
+{
+    "privileges":
+    [
+        {
+            "name": "WebAccess",
+            "essential": true,
+            "parameters": [ "https://localhost", "http://localhost" ]
+        }
+    ],
+    "dataRoles": [
+        {
+            "displayName": "Data ID",
+            "name": "id",
+            "kind": "Measure",
+            "requiredTypes": 
+            [
+                {
+                    "text": true
+                },
+                {
+                    "numeric": true
+                },
+                {
+                    "integer": true
+                }
+            ],
+            "preferredTypes": [
+                {
+                    "text": true
+                }
+            ]
+        },
+        {
+            "displayName": "Check indicator",
+            "name": "check",
+            "kind": "Measure",
+            "requiredTypes": 
+            [
+                {
+                    "bool": true
+                }
+            ],
+            "preferredTypes": [
+                {
+                    "bool": true
+                }
+            ]
+        },
+        {
+            "displayName": "Comment",
+            "name": "comment",
+            "kind": "Measure",
+            "requiredTypes": 
+            [
+                {
+                    "text": true
+                }
+            ],
+            "preferredTypes": [
+                {
+                    "text": true
+                }
+            ]
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "measure": {
+                        "max": 1
+                    }
+                }
+            ],
+            "single": {
+                "role": "id"
+            }
+        }
+    ],
+    "objects": 
+    {
+        "updateObject": {
+            "displayName": "Update opbject",
+            "properties": 
+            {
+                "endpoint": {
+                    "displayName": "endpoint url",
+                    "type": 
+                    {
+                        "text": true
+                    }
+                }
+            }
+        }
+    }
+}

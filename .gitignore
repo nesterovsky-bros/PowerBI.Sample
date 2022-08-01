@@ -5,3 +5,7 @@
 .vs/
 obj/
 bin/
+node_modules/
+.tmp/
+dist/
+UpdateVisual/webpack.statistics.dev.html

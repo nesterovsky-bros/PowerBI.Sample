@@ -1,0 +1,25 @@
+{
+    "visual": {
+        "name": "updateCard",
+        "displayName": "UpdateCard",
+        "guid": "updateCardCC00D97ACF604126AD0A0105F04234F4",
+        "visualClassName": "Visual",
+        "version": "1.0.0",
+        "description": "test visual1",
+        "supportUrl": "https://www.bankhapoalim.co.il/powerbi",
+        "gitHubUrl": ""
+    },
+    "apiVersion": "3.5.0",
+    "author": {
+        "name": "Bank Hapoalim",
+        "email": "guy.kariv@poalim.co.il"
+    },
+    "assets": {
+        "icon": "assets/icon.png"
+    },
+    "externalJS": [],
+    "style": "style/visual.less",
+    "capabilities": "capabilities.json",
+    "dependencies": null,
+    "stringResources": []
+}

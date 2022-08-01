@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.OData;
 
 using REST.Models;
 using NetTopologySuite.IO.Converters;
+using Microsoft.OData.Edm;
+using Microsoft.OData.ModelBuilder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,8 +27,18 @@ services.
       Expand().
       Filter().
       SkipToken().
-      SetMaxTop(null);
+      SetMaxTop(null);//.
+      //AddRouteComponents("api", GetEdmModel());
   });
+
+services.AddCors(options =>
+{
+  options.AddDefaultPolicy(
+      policy =>
+      {
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+      });
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 services.AddEndpointsApiExplorer();
@@ -59,9 +71,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors();
 
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+//IEdmModel GetEdmModel()
+//{
+//  var builder = new ODataConventionModelBuilder();
+
+//  builder.EntitySet<Invoice>("Invoices");
+
+//  return builder.GetEdmModel();
+//}
