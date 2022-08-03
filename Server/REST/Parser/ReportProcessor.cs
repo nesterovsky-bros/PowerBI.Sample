@@ -28,7 +28,7 @@ public class ReportProcessor
     var reports = pages.
       // Form enumeration of tuples (int report, Page page)
       Select(page => (report: int.Parse(Substring(page.lines[0], 70, 7)), page)).
-      // For goups of pages per report.
+      // For groups of pages per report.
       GroupAdjacent(item => item.report).
       // Create a enumeration of ReportData.
       Select(group => new ReportData(
@@ -37,10 +37,10 @@ public class ReportProcessor
         // First page of the report.
         head: group.head.page,
         // Enumeration of ReportLine - all lines of report without page headers.
-        lines: group.items.SelectMany(report =>
-          report.page.lines.Skip(2).Select((line, index) =>
+        lines: group.items.SelectMany(item =>
+          item.page.lines.Skip(2).Select((line, index) =>
             new ReportLine(
-              page: report.page.page,
+              page: item.page.page,
               row: index + 3,
               text: line)))));
 
