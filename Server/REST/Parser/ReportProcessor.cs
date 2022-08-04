@@ -4,7 +4,7 @@ namespace REST.Parser;
 
 using static Functions;
 
-public record Page(int page, string[] lines);
+public record Page(int page, IEnumerable<string> lines);
 
 public record ReportLine(int page, int row, string text);
 
@@ -18,16 +18,20 @@ public class ReportProcessor
   {
     var pages = lines.
       // Form groups of lines.
-      // GroupAdjacent(this IEnumeration<T>) => IEnumeration<(T head, IEnumeration<T> items)>
-      // Note: group items must be consumed before processing next group.
+      // GroupAdjacent(this IEnumerable<T>) => IEnumerable<(T head, IEnumerable<T> items)>
+      // Note: group items may be consumed before processing next group.
+      //       group items may be consumed at most one time except first item,
+      //       which is cached and may be requested multiple times, e.g with items.First() .
       GroupAdjacent(startsAt: line => line.StartsWith("1")).
+      // Transform IEnumerable<(string head, IEnumerable<string> items)> into
+      // IEnumerable<IEnumerable<string>>
+      RemoveHead().
       // Create enumeration of pages.
-      Select((group, index) =>
-        new Page(page: index + 1, lines: group.items.ToArray()));
+      Select((lines, index) => new Page(page: index + 1, lines));
 
     var reports = pages.
       // Form enumeration of tuples (int report, Page page)
-      Select(page => (report: int.Parse(Substring(page.lines[0], 70, 7)), page)).
+      Select(page => (report: int.Parse(Substring(page.lines.First(), 70, 7)), page)).
       // For groups of pages per report.
       GroupAdjacent(item => item.report).
       // Create a enumeration of ReportData.
@@ -37,12 +41,17 @@ public class ReportProcessor
         // First page of the report.
         head: group.head.page,
         // Enumeration of ReportLine - all lines of report without page headers.
-        lines: group.items.SelectMany(item =>
-          item.page.lines.Skip(2).Select((line, index) =>
-            new ReportLine(
+        lines: group.items.
+          SelectMany(item => item.page.lines.
+            Skip(2).
+            Select((line, index) => new ReportLine(
               page: item.page.page,
               row: index + 3,
-              text: line)))));
+              text: line))).
+          // Allow to peek into first line of content.
+          Lookahead())).
+      // Remove reports with empty content.
+      Where(report => report.lines.Any());
 
     return reports.
       // Process report data with specific handler.

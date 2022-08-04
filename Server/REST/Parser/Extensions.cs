@@ -111,7 +111,7 @@ public static class Extensions
     }
   }
 
-  public static IEnumerable<T> Lookahead<T>(this IEnumerable<T> items, int capacity)
+  public static IEnumerable<T> Lookahead<T>(this IEnumerable<T> items, int capacity = 1)
   {
     var buffer = default(List<T>);
     var hasMore = false;
@@ -277,14 +277,19 @@ public static class Extensions
     var index = 0;
     var hasMore = true;
 
-    IEnumerable<(int rank, T item)> group(int rank, int groupIndex)
+    IEnumerable<(int rank, T item)> group((int rank, T item) current, int groupIndex)
     {
+      yield return current;
+
       if (index != groupIndex)
       {
         throw new InvalidOperationException("Data has been consumed.");
       }
 
-      while(hasMore && enumerator.Current.rank == rank)
+      ++index;
+      hasMore = enumerator.MoveNext();
+
+      while(hasMore && enumerator.Current.rank == current.rank)
       {
         yield return enumerator.Current;
 
@@ -295,11 +300,11 @@ public static class Extensions
 
     while(hasMore)
     {
-      var rank = enumerator.Current.rank;
+      var current = enumerator.Current;
 
-      yield return (head: enumerator.Current, items: group(rank, index));
+      yield return (head: current, items: group(current, index));
 
-      while(hasMore && enumerator.Current.rank == rank)
+      while(hasMore && enumerator.Current.rank == current.rank)
       {
         ++index;
         hasMore = enumerator.MoveNext();
@@ -315,6 +320,10 @@ public static class Extensions
         head: group.head.item,
         items: group.items.Select(ranked => ranked.item)
       ));
+
+  public static IEnumerable<IEnumerable<T>> RemoveHead<T>(
+    this IEnumerable<(T head, IEnumerable<T> items)> items) =>
+    items.Select(group => group.items);
 }
 
 public static class Functions
