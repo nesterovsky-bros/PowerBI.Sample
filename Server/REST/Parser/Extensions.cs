@@ -126,24 +126,23 @@ public static class Extensions
 
         foreach(var item in items)
         {
-          if (index < capacity)
-          {
-            ++index;
-            buffer.Add(item);
-          }
-          else if (index == capacity)
-          {
-            ++index;
+          ++index;
 
-            foreach(var bufferedItem in buffer)
-            {
-              yield return bufferedItem;
-            }
+          if (index <= capacity)
+          {
+            buffer.Add(item);
           }
           else
           {
-            ++index;
-            hasMore = true;
+            if (index == capacity + 1)
+            {
+              hasMore = true;
+
+              foreach(var bufferedItem in buffer)
+              {
+                yield return bufferedItem;
+              }
+            }
 
             yield return item;
           }
