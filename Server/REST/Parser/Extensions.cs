@@ -245,11 +245,7 @@ public static class Extensions
     items.
       RankAdjacent(keySelector).
       GroupAdjacent().
-      Select(group =>
-        (
-          head: group.head.item,
-          items: group.items.Select(ranked => ranked.item)
-        ));
+      RemoveRank();
 
   public static IEnumerable<(T head, IEnumerable<T> items)> GroupAdjacent<T>(
     this IEnumerable<T> items,
@@ -257,11 +253,7 @@ public static class Extensions
     items.
       RankAdjacent(comparer).
       GroupAdjacent().
-      Select(group =>
-        (
-          head: group.head.item,
-          items: group.items.Select(ranked => ranked.item)
-        ));
+      RemoveRank();
 
   public static IEnumerable<(T head, IEnumerable<T> items)> GroupAdjacent<T>(
     this IEnumerable<T> items,
@@ -270,11 +262,7 @@ public static class Extensions
     items.
       RankAdjacent(startsAt, endsAt).
       GroupAdjacent().
-      Select(group =>
-        (
-          head: group.head.item,
-          items: group.items.Select(ranked => ranked.item)
-        ));
+      RemoveRank();
 
   public static IEnumerable<((int rank, T item) head, IEnumerable<(int rank, T item)> items)>
     GroupAdjacent<T>(this IEnumerable<(int rank, T item)> items)
@@ -318,6 +306,15 @@ public static class Extensions
       }
     }
   }
+
+  public static IEnumerable<(T head, IEnumerable<T> items)> RemoveRank<T>(
+    this IEnumerable<((int rank, T item) head, IEnumerable<(int rank, T item)> items)> items) =>
+    items.
+      Select(group =>
+      (
+        head: group.head.item,
+        items: group.items.Select(ranked => ranked.item)
+      ));
 }
 
 public static class Functions
