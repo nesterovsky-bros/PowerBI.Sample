@@ -179,8 +179,8 @@ public static class Extensions
   public static IEnumerable<(int rank, T item)> RankAdjacent<T, K>(
     this IEnumerable<T> items,
     Func<T, K> keySelector)
-    where K : IEquatable<K>
   {
+    var comparer = EqualityComparer<K>.Default;
     var rank = 0;
     var prev = default(K);
 
@@ -188,7 +188,7 @@ public static class Extensions
     {
       var key = keySelector(item);
 
-      if (rank == 0 || !key.Equals(prev))
+      if (rank == 0 || !comparer.Equals(prev, key))
       {
         ++rank;
       }
@@ -241,15 +241,14 @@ public static class Extensions
 
   public static IEnumerable<(T head, IEnumerable<T> items)> GroupAdjacent<T, K>(
     this IEnumerable<T> items,
-    Func<T, K> keySelector)
-    where K : IEquatable<K> =>
+    Func<T, K> keySelector) =>
     items.
       RankAdjacent(keySelector).
       GroupAdjacent().
-      Select(item =>
+      Select(group =>
         (
-          head: item.head.item,
-          items: item.items.Select(ranked => ranked.item)
+          head: group.head.item,
+          items: group.items.Select(ranked => ranked.item)
         ));
 
   public static IEnumerable<(T head, IEnumerable<T> items)> GroupAdjacent<T>(
@@ -258,10 +257,10 @@ public static class Extensions
     items.
       RankAdjacent(comparer).
       GroupAdjacent().
-      Select(item =>
+      Select(group =>
         (
-          head: item.head.item,
-          items: item.items.Select(ranked => ranked.item)
+          head: group.head.item,
+          items: group.items.Select(ranked => ranked.item)
         ));
 
   public static IEnumerable<(T head, IEnumerable<T> items)> GroupAdjacent<T>(
@@ -271,10 +270,10 @@ public static class Extensions
     items.
       RankAdjacent(startsAt, endsAt).
       GroupAdjacent().
-      Select(item =>
+      Select(group =>
         (
-          head: item.head.item,
-          items: item.items.Select(ranked => ranked.item)
+          head: group.head.item,
+          items: group.items.Select(ranked => ranked.item)
         ));
 
   public static IEnumerable<((int rank, T item) head, IEnumerable<(int rank, T item)> items)>
@@ -288,66 +287,34 @@ public static class Extensions
     }
 
     var index = 0;
-    var groupConsumed = false;
-    var consumed = false;
+    var hasMore = true;
 
     IEnumerable<(int rank, T item)> group(int rank, int groupIndex)
     {
-      while(true)
+      if (index != groupIndex)
+      {
+        throw new InvalidOperationException("Data has been consumed.");
+      }
+
+      while(hasMore && enumerator.Current.rank == rank)
       {
         yield return enumerator.Current;
 
-        if (index != groupIndex)
-        {
-          throw new InvalidOperationException("Enumerator consumed.");
-        }
-
-        if (!enumerator.MoveNext())
-        {
-          consumed = true;
-
-          break;
-        }
-
         ++index;
-        ++groupIndex;
-
-        if (enumerator.Current.rank != rank)
-        {
-          break;
-        }
+        hasMore = enumerator.MoveNext();
       }
-
-      groupConsumed = true;
     };
 
-    while(!consumed)
+    while(hasMore)
     {
-      groupConsumed = false;
+      var rank = enumerator.Current.rank;
 
-      var head = enumerator.Current;
-      var rank = head.rank;
+      yield return (head: enumerator.Current, items: group(rank, index));
 
-      yield return (head, items: group(rank, index));
-
-      if (!groupConsumed)
+      while(hasMore && enumerator.Current.rank == rank)
       {
-        while(true)
-        {
-          if (!enumerator.MoveNext())
-          {
-            consumed = true;
-
-            break;
-          }
-
-          ++index;
-
-          if (enumerator.Current.rank != rank)
-          {
-            break;
-          }
-        }
+        ++index;
+        hasMore = enumerator.MoveNext();
       }
     }
   }
@@ -438,7 +405,7 @@ public static class Functions
       }
     }
 
-    return new XElement(XmlConvert.EncodeName(name), children.ToArray());
+    return new XElement(XmlConvert.EncodeName(name), children);
   }
 
   private static bool IsSimpleType(Type type)
