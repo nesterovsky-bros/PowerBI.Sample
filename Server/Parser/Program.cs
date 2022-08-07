@@ -5,6 +5,8 @@ using System.Xml.Linq;
 
 using NesterovskyBros.Parser;
 
+using static NesterovskyBros.Parser.Functions;
+
 using Parser.Reports;
 
 var input = args[0];
@@ -17,17 +19,10 @@ var lineSource = new LineSource
   SkipTopEmptyLines = true
 };
 
-var handlers = 
-  new IReport[]
-  {
-    new Report1203001()
-  }.
-  ToDictionary(report => report.ReportNumber);
-
-IEnumerable<XElement?> handler(IEnumerable<Page> items, ITracer? tracer) =>
-  handlers.TryGetValue(items.First().report, out var handler) ?
+IEnumerable<object?> handler(IEnumerable<Page> items, ITracer? tracer) =>
+  Reports.Handlers.TryGetValue(items.First().report, out var handler) ?
     handler.Parse(items, tracer) :
-    Array.Empty<XElement?>();
+    Array.Empty<object?>();
 
 using var tracer = new Tracer();
 
@@ -46,7 +41,7 @@ using var tracer = new Tracer();
 
   foreach(var result in results)
   {
-    result.WriteTo(writer);
+    ToXml(result!)!.WriteTo(writer);
   }
 
   stopwatch.Stop();

@@ -15,9 +15,9 @@ public record Page(
 
 public class Processor
 {
-  public static IEnumerable<XElement> Parse(
+  public static IEnumerable<object> Parse(
     IEnumerable<string> lines,
-    Func<IEnumerable<Page>, ITracer?, IEnumerable<XElement?>> handler,
+    Func<IEnumerable<Page>, ITracer?, IEnumerable<object?>> handler,
     ITracer? tracer = null)
   {
     var pages = lines.
@@ -33,7 +33,10 @@ public class Processor
       Select((lines, index) => new Page(
         page: index + 1,
         report: int.Parse(Substring(lines[1], 92, 7)),
-        correctnessDate: DateTime.ParseExact(Substring(lines[1], 16, 8), "dd.MM.yy", null),
+        correctnessDate: DateTime.ParseExact(
+          Substring(lines[1], 16, 8), 
+          "dd.MM.yy", 
+          null),
         destinationBranch: int.Parse(Substring(lines[0], 34, 3)),
         recipientType: Substring(lines[0], 32, 1),
         recipientNumber: int.Parse(Substring(lines[0], 37, 2)),
@@ -56,6 +59,6 @@ public class Processor
       Select(report => handler(report, tracer)).
       // produce final enumeration of XElement(s).
       SelectMany(item => item).
-      Where(item => item != null) as IEnumerable<XElement>;
+      Where(item => item != null) as IEnumerable<object>;
   }
 }

@@ -8,5 +8,5 @@ public interface IReport
 {
   int ReportNumber { get; }
 
-  IEnumerable<XElement?> Parse(IEnumerable<Page> report, ITracer? tracer);
+  IEnumerable<object?> Parse(IEnumerable<Page> report, ITracer? tracer);
 }
