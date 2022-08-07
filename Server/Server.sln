@@ -5,6 +5,10 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "REST", "REST\REST.csproj", "{AD2BF8C4-AD5B-49D6-919A-F49EDF7DA0FE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bidi", "Bidi\Bidi.csproj", "{DF1AE35F-577A-4EDF-BC3F-0830696E6F66}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parser", "Parser\Parser.csproj", "{A3543056-9CA2-4A49-A0E4-28F0D9F3B8D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{AD2BF8C4-AD5B-49D6-919A-F49EDF7DA0FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD2BF8C4-AD5B-49D6-919A-F49EDF7DA0FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD2BF8C4-AD5B-49D6-919A-F49EDF7DA0FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF1AE35F-577A-4EDF-BC3F-0830696E6F66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF1AE35F-577A-4EDF-BC3F-0830696E6F66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF1AE35F-577A-4EDF-BC3F-0830696E6F66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF1AE35F-577A-4EDF-BC3F-0830696E6F66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3543056-9CA2-4A49-A0E4-28F0D9F3B8D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3543056-9CA2-4A49-A0E4-28F0D9F3B8D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3543056-9CA2-4A49-A0E4-28F0D9F3B8D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3543056-9CA2-4A49-A0E4-28F0D9F3B8D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
