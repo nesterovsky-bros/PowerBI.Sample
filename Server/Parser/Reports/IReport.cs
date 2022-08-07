@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-
-using NesterovskyBros.Parser;
+﻿using NesterovskyBros.Parser;
 
 namespace Parser.Reports;
 

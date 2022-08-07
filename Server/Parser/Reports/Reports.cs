@@ -3,6 +3,15 @@ using System.Globalization;
 
 namespace Parser.Reports;
 
+public record Page(
+  int page,
+  int report,
+  DateTime correctnessDate,
+  int destinationBranch,
+  string recipientType,
+  int recipientNumber,
+  string[] lines);
+
 public static class Reports
 {
   public static readonly NumberFormatInfo NumberFormat;

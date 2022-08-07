@@ -1,17 +1,8 @@
-using System.Xml.Linq;
+using NesterovskyBros.Parser;
 
-namespace NesterovskyBros.Parser;
+namespace Parser.Reports;
 
 using static Functions;
-
-public record Page(
-  int page,
-  int report,
-  DateTime correctnessDate,
-  int destinationBranch,
-  string recipientType,
-  int recipientNumber,
-  string[] lines);
 
 public class Processor
 {
@@ -34,8 +25,8 @@ public class Processor
         page: index + 1,
         report: int.Parse(Substring(lines[1], 92, 7)),
         correctnessDate: DateTime.ParseExact(
-          Substring(lines[1], 16, 8), 
-          "dd.MM.yy", 
+          Substring(lines[1], 16, 8),
+          "dd.MM.yy",
           null),
         destinationBranch: int.Parse(Substring(lines[0], 34, 3)),
         recipientType: Substring(lines[0], 32, 1),
@@ -44,12 +35,12 @@ public class Processor
       Trace("Line/Page", tracer);
 
     var reports = pages.
-      GroupAdjacent(item => 
+      GroupAdjacent(item =>
       (
-        item.report, 
-        item.correctnessDate, 
-        item.destinationBranch, 
-        item.recipientType, 
+        item.report,
+        item.correctnessDate,
+        item.destinationBranch,
+        item.recipientType,
         item.recipientNumber
       )).
       Trace("Page/ReportPages", tracer);
