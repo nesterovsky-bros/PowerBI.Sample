@@ -58,8 +58,9 @@ public class Report1203001: IReport
 
   public int ReportNumber => 1203001;
 
-  IEnumerable<object?> IReport.Parse(IEnumerable<Page> items, ITracer? tracer) => 
-    Parse(items, tracer);
+  IEnumerable<object?> IReport.Parse(
+    IEnumerable<Page> items, 
+    ITracer? tracer) => Parse(items, tracer);
 
   public IEnumerable<Account?> Parse(IEnumerable<Page> items, ITracer? tracer)
   {
