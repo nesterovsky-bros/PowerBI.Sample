@@ -2,11 +2,8 @@ namespace NesterovskyBros.Parser;
 
 using System.Collections;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
-
-using NesterovskyBros.Bidi;
 
 public interface ITracer: IDisposable
 {
@@ -101,7 +98,7 @@ public class Tracer: ITracer
 
   public ITracer.IScope? Scope(string? name, string? action)
   {
-    if(!CollectedStatistics.TryGetValue((name, action), out var statistics))
+    if (!CollectedStatistics.TryGetValue((name, action), out var statistics))
     {
       statistics = new()
       {
@@ -705,50 +702,6 @@ public struct BufferSpan<T>
 
 public static class Functions
 {
-  public static string Substring(string? value, int start, int length)
-  {
-    if(value == null)
-    {
-      return "";
-    }
-
-    if(start < 0)
-    {
-      length += start;
-      start = 0;
-    }
-
-    if(start >= value.Length)
-    {
-      return "";
-    }
-
-    if(start + length > value.Length)
-    {
-      length = value.Length - start;
-    }
-
-    if(length <= 0)
-    {
-      return "";
-    }
-
-    return value.Substring(start, length);
-  }
-
-  public static string? NullIfEmpty(string? value) =>
-    string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-  private static readonly Regex spaces = new Regex(@"\s\s+", RegexOptions.Compiled);
-
-  public static string Normalize(string? value)
-  {
-    return value == null ? "" : spaces.Replace(value, " ").Trim();
-  }
-
-  public static string? Bidi(string? value) => 
-    BidiConverter.Convert(value, true, false);
-
   /// <summary>
   /// Converts an anonymous type to an XElement.
   /// </summary>

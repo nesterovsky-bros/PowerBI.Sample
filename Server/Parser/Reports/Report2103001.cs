@@ -1,11 +1,8 @@
 ﻿namespace Parser.Reports;
 
-using System.Globalization;
-using System.Xml.Linq;
-
 using NesterovskyBros.Parser;
 
-using static NesterovskyBros.Parser.Functions;
+using static Parser.Reports.Reports;
 
 public class Report1203001: IReport
 {
@@ -80,14 +77,15 @@ public class Report1203001: IReport
             page: page.page,
             row: index + 4, 
             text, 
-            type: text.EndsWith("|ןח .סמ") ? "info" :
-              text.EndsWith("| רוקמ") ? "transactions" :
-              text.EndsWith(":תורעה") ? "comment" :
-              text.EndsWith("|  עוציב .ת") ? "operation" : ""
+            type: 
+              // Empty
+              text.StartsWith("0") || string.IsNullOrWhiteSpace(text) ? 'E' :
+              text.EndsWith("|ןח .סמ") ? 'I' : // Info
+              text.EndsWith("| רוקמ") ? 'T' : // Transaction
+              text.EndsWith(":תורעה") ? 'C' : // Comment
+              text.EndsWith("|  עוציב .ת") ? 'O' : ' ' // Operation; other
           )).
-          Where(item =>
-            !item.text.StartsWith("0") &&
-            !string.IsNullOrWhiteSpace(item.text))).
+          Where(item => item.type != 'E')).
       SelectMany(item => item).
       Trace("ReportPages/ReportRow", tracer);
 
@@ -97,7 +95,7 @@ public class Report1203001: IReport
       Trace("ReportRow/AccountRows", tracer).
       Select(rows => rows.
         Skip(1).
-        GroupAdjacent(startsAt: row => !string.IsNullOrEmpty(row.type)).
+        GroupAdjacent(startsAt: row => row.type != ' ').
         Trace("AccountRows/Section", tracer).
         Aggregate(
           new Account(
@@ -112,32 +110,26 @@ public class Report1203001: IReport
 
             switch(head.type)
             {
-              case "info":
+              case 'I': // Info
               {
                 var row = group.ElementAt(1);
-                var alertComment = NullIfEmpty(Bidi(Substring(row.text, 1, 65)));
 
                 account = account with
                 {
                   page = row.page,
                   row = row.row,
-                  alertDate = DateTime.TryParseExact(
-                      Substring(row.text, 67, 8),
-                      "dd/MM/yy",
-                      null,
-                      DateTimeStyles.AllowWhiteSpaces, out var date) ?
-                      date : null,
-                  account = int.Parse(Substring(row.text, 127, 6)),
-                  accountName = Bidi(Normalize(Substring(row.text, 86, 36))),
-                  recipient = NullIfEmpty(Substring(row.text, 123, 3)),
-                  alertType = int.Parse(Substring(row.text, 81, 4)),
-                  idType = NullIfEmpty(Bidi(Substring(row.text, 76, 4))),
-                  alertComment = alertComment
+                  alertDate = TryDate(row.text, 67, 8),
+                  account = Int(row.text, 127, 6),
+                  accountName = String(row.text, 86, 36, bidi: true),
+                  recipient = String(row.text, 123, 3),
+                  alertType = Int(row.text, 81, 4),
+                  idType = String(row.text, 76, 4, bidi: true),
+                  alertComment = String(row.text, 1, 65, bidi: true)
                 };
 
                 break;
               }
-              case "transactions":
+              case 'T': // Transactions
               {
                 account = account with
                 {
@@ -147,52 +139,18 @@ public class Report1203001: IReport
                     Select(row => new Transaction(
                       page: row.page,
                       row: row.row,
-                      origin: NullIfEmpty(Bidi(Substring(row.text, 128, 5))),
-                      description: NullIfEmpty(Bidi(Normalize(Substring(row.text, 113, 14)))),
-                      date: DateTime.TryParseExact(
-                        Substring(row.text, 102, 10),
-                        "dd/MM/yyyy",
-                        null,
-                        DateTimeStyles.AllowWhiteSpaces,
-                        out var date) ?
-                        date : null,
-                      actionType: int.TryParse(
-                        Substring(row.text, 97, 4), 
-                        out var actionType) ? 
-                        actionType : null,
-                      activityType: int.TryParse(
-                        Substring(row.text, 91, 5), 
-                        out var activityType) ? 
-                        activityType : null,
-                      reference: long.TryParse(
-                        Substring(row.text, 77, 13), 
-                        out var reference) ? 
-                        reference : null,
-                      currency: NullIfEmpty(Bidi(Normalize(Substring(row.text, 72, 4)))),
-                      amount: decimal.TryParse(
-                        Substring(row.text, 51, 20), 
-                        NumberStyles.Currency, 
-                        Reports.NumberFormat, 
-                        out var amount) ? 
-                        amount : null,
-                      shelelAmount: decimal.TryParse(
-                        Substring(row.text, 30, 20),
-                        NumberStyles.Currency,
-                        Reports.NumberFormat,
-                        out var shekelAmount) ?
-                        shekelAmount : null,
-                      employeeID: long.TryParse(
-                        Substring(row.text, 13, 17),
-                        out var employeeID) ?
-                        employeeID : null,
-                      employeeCode: int.TryParse(
-                        Substring(row.text, 7, 5),
-                        out var employeeCode) ?
-                        employeeCode : null,
-                      station: int.TryParse(
-                        Substring(row.text, 1, 4),
-                        out var station) ?
-                        station : null
+                      origin: String(row.text, 128, 5, bidi: true),
+                      description: String(row.text, 113, 14, bidi: true),
+                      date: TryDate(row.text, 102, 10),
+                      actionType: TryInt(row.text, 97, 4),
+                      activityType: TryInt(row.text, 91, 5),
+                      reference: TryLong(row.text, 77, 13),
+                      currency: String(row.text, 72, 4, bidi: true),
+                      amount: TryDecimal(row.text, 51, 20),
+                      shelelAmount: TryDecimal(row.text, 30, 20),
+                      employeeID: TryLong(row.text, 13, 17),
+                      employeeCode: TryInt(row.text, 7, 5),
+                      station: TryInt(row.text, 1, 4)
                     )).
                     Trace("Section/Transactions", tracer).
                     ToArray()
@@ -200,16 +158,16 @@ public class Report1203001: IReport
 
                 break;
               }
-              case "comment":
+              case 'C': // Comment
               {
                 account = account with
                 {
-                  comment = NullIfEmpty(Bidi(Normalize(Substring(head.text, 1, 125))))
+                  comment = String(head.text, 1, 125, bidi: true)
                 };
 
                 break;
               }
-              case "operation":
+              case 'O': // Operations
               {
                 account = account with
                 {
@@ -218,33 +176,13 @@ public class Report1203001: IReport
                     Select(row => new Operation(
                       page: row.page,
                       row: row.row,
-                      date: DateTime.TryParseExact(
-                        Substring(row.text, 123, 10),
-                        "dd/MM/yyyy",
-                        null,
-                        DateTimeStyles.AllowWhiteSpaces,
-                        out var date) ?
-                        date : null,
-                      cardName: NullIfEmpty(Bidi(Normalize(Substring(row.text, 97, 25)))),
-                      clientID: long.TryParse(
-                        Substring(row.text, 87, 9),
-                        out var clientID) ?
-                        clientID : null,
-                      cardID: long.TryParse(
-                        Substring(row.text, 75, 11),
-                        out var cardID) ?
-                        cardID : null,
-                      comment: NullIfEmpty(Bidi(Normalize(Substring(row.text, 44, 30)))),
-                      amount: decimal.TryParse(
-                        Substring(row.text, 23, 20),
-                        NumberStyles.Currency,
-                        Reports.NumberFormat,
-                        out var amount) ?
-                        amount : null,
-                      employeeID: long.TryParse(
-                        Substring(row.text, 6, 16),
-                        out var employeeID) ?
-                        employeeID : null)).
+                      date: TryDate(row.text, 123, 10),
+                      cardName: String(row.text, 97, 25, bidi: true),
+                      clientID: TryLong(row.text, 87, 9),
+                      cardID: TryLong(row.text, 75, 11),
+                      comment: String(row.text, 44, 30, bidi: true),
+                      amount: TryDecimal(row.text, 23, 20),
+                      employeeID: TryLong(row.text, 6, 16))).
                     Trace("Section/Operations", tracer).
                     ToArray()
                 };

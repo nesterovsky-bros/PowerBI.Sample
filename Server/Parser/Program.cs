@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Xml;
-using System.Xml.Linq;
 
 using NesterovskyBros.Parser;
 
@@ -19,16 +18,11 @@ var lineSource = new LineSource
   SkipTopEmptyLines = true
 };
 
-IEnumerable<object?> handler(IEnumerable<Page> items, ITracer? tracer) =>
-  Reports.Handlers.TryGetValue(items.First().report, out var handler) ?
-    handler.Parse(items, tracer) :
-    Array.Empty<object?>();
-
 using var tracer = new Tracer();
 
 {
   var stopwatch = Stopwatch.StartNew();
-  var results = Processor.Parse(lineSource.GetLines(), handler, tracer);
+  var results = Reports.Parse(lineSource.GetLines(), tracer);
 
   using var writer = XmlWriter.Create(
     output,
