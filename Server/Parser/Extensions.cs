@@ -14,11 +14,9 @@ public interface ITracer: IDisposable
   {
     void Add(IDisposable resource);
     void Release(IDisposable resource);
-    void SetValue(int value);
   }
 
-  IScope? Scope(long id, string? name, string action);
-  long NewID();
+  IScope? Scope(string? name, string action);
 }
 
 public interface ITraceable
@@ -31,17 +29,14 @@ public class Tracer: ITracer
 {
   public class Statistics
   {
-    public long ID { get; set; }
     public string? Name { get; set; }
     public string? Action { get; set; }
-    public DateTime Timestamp { get; set; }
+    public long Count { get; set; }
     public long Duration { get; set; }
-    public int Value { get; set; }
   }
 
-  public bool Active { get; set; } = true;
-
-  public List<Statistics> Log { get; } = new();
+  public Dictionary<(string? name, string? action), Statistics> 
+    CollectedStatistics { get; } = new();
 
   public void Dispose()
   {
@@ -53,34 +48,27 @@ public class Tracer: ITracer
     resources.Clear();
   }
 
-  public ITracer.IScope? Scope(long id, string? name, string action)
+  public ITracer.IScope? Scope(string? name, string? action)
   {
-    if (!Active)
+    if(!CollectedStatistics.TryGetValue((name, action), out var statistics))
     {
-      return null;
+      statistics = new()
+      {
+        Name = name,
+        Action = action
+      };
+
+      CollectedStatistics[(name, action)] = statistics;
     }
 
-    var scope = new TracerScope
+    return new TracerScope
     {
       tracer = this,
       timestamp  = Stopwatch.GetTimestamp(),
-      statistics = new()
-      {
-        Timestamp = DateTime.Now,
-        ID = id,
-        Name = name,
-        Action = action
-      }
+      statistics = statistics
     };
-
-    Log.Add(scope.statistics);
-
-    return scope;
   }
 
-  public long NewID() => ++id;
-
-  private long id;
   private HashSet<IDisposable> resources = 
     new(ReferenceEqualityComparer.Instance);
 
@@ -94,7 +82,8 @@ public class Tracer: ITracer
 
     public void Dispose()
     {
-      statistics!.Duration = Stopwatch.GetTimestamp() - timestamp;
+      ++statistics!.Count;
+      statistics!.Duration += Stopwatch.GetTimestamp() - timestamp;
 
       foreach(var resource in resources)
       {
@@ -115,11 +104,6 @@ public class Tracer: ITracer
     {
       tracer?.resources.Remove(resource);
       resources.Remove(resource);
-    }
-
-    public void SetValue(int value)
-    {
-      statistics!.Value = value;
     }
   }
 }
@@ -148,7 +132,6 @@ public static class Extensions
       { 
         Name = name, 
         Tracer = tracer,
-        ID = tracer?.NewID() ?? 0,
         Source = list 
       } :
     source is ICollection<T> collection ? 
@@ -156,14 +139,12 @@ public static class Extensions
       { 
         Name = name, 
         Tracer = tracer,
-        ID = tracer?.NewID() ?? 0,
         Source = collection 
       } :
       new TraceableEnumerable<T, IEnumerable<T>> 
       { 
         Name = name, 
         Tracer = tracer,
-        ID = tracer?.NewID() ?? 0,
         Source = source 
       };
 
@@ -527,13 +508,15 @@ public static class Extensions
   {
     public string? Name { get; init; }
     public ITracer? Tracer { get; init; }
-    public long ID { get; init; }
     public C? Source { get; init; }
 
     public IEnumerator<T> GetEnumerator()
     {
-      var index = 0;
-      using var scope = Tracer?.Scope(ID, Name, "GetEnumerator");
+      using var scope = 
+        Tracer?.Scope(Name, first ? "GetEnumerator" : "GetEnumerator.Rescan");
+
+      first = false;
+
       using var enumerator = Source!.GetEnumerator();
 
       scope?.Add(enumerator);
@@ -542,8 +525,6 @@ public static class Extensions
       {
         while(enumerator.MoveNext())
         {
-          ++index;
-
           yield return enumerator.Current;
         }
       }
@@ -551,11 +532,11 @@ public static class Extensions
       {
         scope?.Release(enumerator);
       }
-
-      scope?.SetValue(index);
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    private bool first = true;
   }
 
   private class TraceableCollection<T, C>: TraceableEnumerable<T, C>, ICollection<T>
@@ -565,12 +546,9 @@ public static class Extensions
     {
       get
       {
-        using var scope = Tracer?.Scope(ID, Name, "Count");
-        var count = Source!.Count;
-
-        scope?.SetValue(count);
-
-        return count;
+        using var scope = Tracer?.Scope(Name, "Count");
+        
+        return Source!.Count;
       }
     }
 
@@ -582,14 +560,14 @@ public static class Extensions
 
     public bool Contains(T item)
     {
-      using var scope = Tracer?.Scope(ID, Name, "Contains");
+      using var scope = Tracer?.Scope(Name, "Contains");
 
       return Source!.Contains(item);
     }
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-      using var scope = Tracer?.Scope(ID, Name, "CopyTo");
+      using var scope = Tracer?.Scope(Name, "CopyTo");
 
       Source!.CopyTo(array, arrayIndex);
     }
@@ -604,9 +582,7 @@ public static class Extensions
     {
       get
       {
-        using var scope = Tracer?.Scope(ID, Name, "Index");
-
-        scope?.SetValue(index);
+        using var scope = Tracer?.Scope(Name, "Index");
 
         return Source![index];
       }
@@ -615,12 +591,9 @@ public static class Extensions
 
     public int IndexOf(T item)
     {
-      using var scope = Tracer?.Scope(ID, Name, "IndexOf");
-      var index = Source!.IndexOf(item);
-
-      scope?.SetValue(index);
-
-      return index;
+      using var scope = Tracer?.Scope(Name, "IndexOf");
+      
+      return Source!.IndexOf(item);
     }
 
     public void Insert(int index, T item) => throw new NotImplementedException();

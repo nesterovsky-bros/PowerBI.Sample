@@ -9,8 +9,6 @@ using static NesterovskyBros.Parser.Functions;
 
 public class Report1203001: IReport
 {
-  public record Row(int page, int row, string text);
-
   public record Transaction(int page, int row, string text);
 
   public record Account(
@@ -52,10 +50,7 @@ public class Report1203001: IReport
           Where(item =>
             !item.text.StartsWith("0") &&
             !string.IsNullOrWhiteSpace(item.text)).
-          Select(item => new Row(
-            page: page.page,
-            row: item.row,
-            text: item.text))).
+          Select(item => (page.page, item.row, item.text))).
       SelectMany(item => item).
       Trace("ReportPage/Row", tracer);
 
@@ -68,8 +63,7 @@ public class Report1203001: IReport
           {
             0 or 1 or 3 or 4 or 5 => false,
             _ => true
-          }).
-          Lookahead()).
+          })).
       Select(rows =>
       {
         var head = rows.First();

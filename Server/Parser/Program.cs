@@ -54,43 +54,15 @@ using var tracer = new Tracer();
   Console.WriteLine($"Execution time: {stopwatch.Elapsed}s.\n"); 
 }
 
-var statistics = tracer.Log.
-  GroupBy(item => (item.Name, item.Action)).
-  Select(group =>
-  {
-    var count = group.Count();
-    
-    var rescans = group.Key.Action != "GetEnumerator" ? 0 :
-      group.
-        GroupBy(item => item.ID).
-        Select(group => group.Count() - 1).
-        Sum();
-
-    var avg = group.Average(item => item.Value);
-    var avg2 = group.Average(item => (double)item.Value * item.Value);
-    var stdev = Math.Sqrt(avg2 - avg * avg);
-
-    return new
-    {
-      Name = group.Key.Name,
-      Action = group.Key.Action,
-      Duration = new TimeSpan(group.Sum(item => item.Duration)),
-      Count = count,
-      Rescans = rescans,
-      Avg = avg,
-      Stdev = stdev
-    };
-  }).
-  OrderBy(item => (item.Name, item.Action)).
-  ToArray();
-
-
 Console.WriteLine(
-  "Name,Action,Count,Rescans,Avg(Value),Stdev(Value),Duration");
+  "Name,Action,Count,Avg,Duration");
 
-foreach(var item in statistics)
+foreach(var item in 
+  tracer.CollectedStatistics.Values.OrderByDescending(item => item.Duration))
 {
   Console.WriteLine(
-    $"{item.Name},{item.Action},{item.Count},{item.Rescans}," +
-    $"{item.Avg:0.##},{item.Stdev:0.##},{item.Duration.TotalMilliseconds}");
+    $@"{item.Name},{item.Action},{item.Count},{
+      (double)item.Duration / item.Count / 
+        TimeSpan.TicksPerMillisecond :0.##},{
+      (double)item.Duration / TimeSpan.TicksPerMillisecond}");
 }
