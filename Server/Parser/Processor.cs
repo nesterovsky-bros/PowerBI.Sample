@@ -17,12 +17,11 @@ public class Processor
 {
   public static IEnumerable<XElement> Parse(
     IEnumerable<string> lines,
-    Func<IEnumerable<Page>, ITracer?, IEnumerable<XElement>> 
-      reportHandler,
+    Func<IEnumerable<Page>, ITracer?, IEnumerable<XElement?>> handler,
     ITracer? tracer = null)
   {
     var pages = lines.
-      Trace("Line", tracer).
+      Trace("/Line", tracer).
       // Form groups of lines.
       // Note: group items should not be enumerated after
       //       processing of the next group.
@@ -54,8 +53,9 @@ public class Processor
 
     return reports.
       // Process report data with specific handler.
-      Select(report => reportHandler(report, tracer)).
+      Select(report => handler(report, tracer)).
       // produce final enumeration of XElement(s).
-      SelectMany(item => item);
+      SelectMany(item => item).
+      Where(item => item != null) as IEnumerable<XElement>;
   }
 }

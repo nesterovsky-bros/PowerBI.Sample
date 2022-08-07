@@ -48,6 +48,57 @@ public class Tracer: ITracer
     resources.Clear();
   }
 
+  public Statistics[] GetStatisticsByPath()
+  {
+    var items = CollectedStatistics.Values.
+      Select(item => new Statistics
+      {
+        Name = item.Name,
+        Action = item.Action,
+        Count = item.Count,
+        Duration = item.Duration
+      }).
+      ToArray();
+
+    var found = true;
+
+    while(found)
+    {
+      found = false;
+
+      foreach(var item in items)
+      {
+        if ((item.Name == null) || item.Name.StartsWith('/'))
+        {
+          continue;
+        }
+
+        var p = item.Name?.IndexOf('/') ?? -1;
+
+        if (p != -1)
+        {
+          var prefix = "/" + item.Name![0..p];
+
+          var path = items.
+            FirstOrDefault(other =>
+              (other != item) &&
+              (other.Name?.EndsWith(prefix) == true))?.
+            Name;
+
+          if (path != null)
+          {
+            found = true;
+            item.Name = path + item.Name[p..];
+          }
+        }
+      }
+    }
+
+    Array.Sort(items, (f, s) => string.Compare(f.Name, s.Name));
+
+    return items;
+  }
+
   public ITracer.IScope? Scope(string? name, string? action)
   {
     if(!CollectedStatistics.TryGetValue((name, action), out var statistics))
@@ -702,12 +753,22 @@ public static class Functions
   /// Converts an anonymous type to an XElement.
   /// </summary>
   /// <param name="input">The input.</param>
+  /// <returns>
+  /// Returns the object as it's XML representation in an 
+  /// <see cref="XElement"/>.
+  /// </returns>
+  public static XElement? ToXml(object? input) => ToXml(input, null);
+
+  /// <summary>
+  /// Converts an anonymous type to an XElement.
+  /// </summary>
+  /// <param name="input">The input.</param>
   /// <param name="name">The element name.</param>
   /// <returns>
   /// Returns the object as it's XML representation in an 
   /// <see cref="XElement"/>.
   /// </returns>
-  public static XElement? ToXml(object? input, string? name = null)
+  public static XElement? ToXml(object? input, string? name)
   {
     if (input == null)
     {
@@ -735,9 +796,9 @@ public static class Functions
       }
     }
    
-    if (IsEnumerable(inputType))
+    if (input is IEnumerable enumerable)
     {
-      return ToXml(new { items = input }, name);
+      return ToXml(new { items = enumerable }, name);
     }
 
     var children = new List<object>();
@@ -765,14 +826,14 @@ public static class Functions
             new XAttribute(propertyName, date.ToString("yyyy-MM-dd")) :
             new XAttribute(propertyName, value));
       }
-      else if (IsEnumerable(type))
+      else if (value is IEnumerable enumerableValue)
       {
         var itemName = propertyName.EndsWith("ies") ? 
           propertyName[0..^3] + "y" :
           propertyName.EndsWith("s") ? propertyName[0..^1] :
           propertyName;
 
-        foreach(var item in (IEnumerable)value)
+        foreach(var item in enumerableValue)
         {
           children.Add(ToXml(item, itemName) ?? new XElement(itemName));
         }
@@ -796,12 +857,6 @@ public static class Functions
     return type.IsPrimitive || type.IsEnum || WriteTypes.Contains(type);
   }
 
-  private static bool IsEnumerable(Type type)
-  {
-    return typeof(IEnumerable).IsAssignableFrom(type) &&
-      !FlatternTypes.Contains(type);
-  }
-
   private static readonly Type[] WriteTypes = new[]
   {
     typeof(string),
@@ -810,6 +865,4 @@ public static class Functions
     typeof(decimal),
     typeof(Guid),
   };
-
-  private static readonly Type[] FlatternTypes = new[] { typeof(string) };
 }

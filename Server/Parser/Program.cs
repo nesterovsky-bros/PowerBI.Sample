@@ -24,10 +24,10 @@ var handlers =
   }.
   ToDictionary(report => report.ReportNumber);
 
-IEnumerable<XElement> handler(IEnumerable<Page> items, ITracer? tracer) =>
+IEnumerable<XElement?> handler(IEnumerable<Page> items, ITracer? tracer) =>
   handlers.TryGetValue(items.First().report, out var handler) ?
     handler.Parse(items, tracer) :
-    Array.Empty<XElement>();
+    Array.Empty<XElement?>();
 
 using var tracer = new Tracer();
 
@@ -55,14 +55,13 @@ using var tracer = new Tracer();
 }
 
 Console.WriteLine(
-  "Name,Action,Count,Avg,Duration");
+  "Action,Count,Avg,Duration,Path");
 
-foreach(var item in 
-  tracer.CollectedStatistics.Values.OrderByDescending(item => item.Duration))
+foreach(var item in tracer.GetStatisticsByPath())
 {
   Console.WriteLine(
-    $@"{item.Name},{item.Action},{item.Count},{
+    $@"{item.Action},{item.Count},{
       (double)item.Duration / item.Count / 
         TimeSpan.TicksPerMillisecond :0.##},{
-      (double)item.Duration / TimeSpan.TicksPerMillisecond}");
+      (double)item.Duration / TimeSpan.TicksPerMillisecond:0.##},{item.Name}");
 }

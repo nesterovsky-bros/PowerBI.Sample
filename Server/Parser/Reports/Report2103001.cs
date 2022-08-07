@@ -12,6 +12,11 @@ public class Report1203001: IReport
   public record Transaction(int page, int row, string text);
 
   public record Account(
+    int report,
+    DateTime correctnessDate,
+    int destinationBranch,
+    string recipientType,
+    int recipientNumber,
     int page,
     int row,
     DateTime? alertDate,
@@ -23,17 +28,9 @@ public class Report1203001: IReport
     string? alertComment,
     IEnumerable<Transaction> transactions);
 
-  public record Report(
-    int report,
-    DateTime correctnessDate,
-    int destinationBranch,
-    string recipientType,
-    int recipientNumber,
-    IEnumerable<Account> accounts);
-
   public int ReportNumber => 1203001;
 
-  public IEnumerable<XElement> Parse(IEnumerable<Page> items, ITracer? tracer)
+  public IEnumerable<XElement?> Parse(IEnumerable<Page> items, ITracer? tracer)
   {
     var page = items.First();
 
@@ -52,24 +49,31 @@ public class Report1203001: IReport
             !string.IsNullOrWhiteSpace(item.text)).
           Select(item => (page.page, item.row, item.text))).
       SelectMany(item => item).
-      Trace("ReportPage/Row", tracer);
+      Trace("ReportPages/ReportRow", tracer);
 
     var accounts = rows.
       GroupAdjacent(startsAt: row => row.text.
         Contains(" ------------------------------------------------------------------------------------------------------------------------------------")).
-      Select(rows =>
-        rows.
+      Trace("ReportRow/AccountRows", tracer).
+      Select(accountRows => 
+        accountRows.
           Where((row, index) => index switch
           {
             0 or 1 or 3 or 4 or 5 => false,
             _ => true
-          })).
-      Select(rows =>
+          }).
+          Lookahead()).
+      Select(accountRows =>
       {
-        var head = rows.First();
+        var head = accountRows.First();
         var alertComment = NullIfEmpty(Bidi(Substring(head.text, 1, 65)));
 
         return new Account(
+          report: page.report,
+          correctnessDate: page.correctnessDate,
+          destinationBranch: page.destinationBranch,
+          recipientType: page.recipientType,
+          recipientNumber: page.recipientNumber,
           page: head.page,
           row: head.row,
           alertDate: DateTime.TryParseExact(
@@ -84,27 +88,16 @@ public class Report1203001: IReport
           alertType: int.Parse(Substring(head.text, 81, 4)),
           idType: NullIfEmpty(Bidi(Substring(head.text, 76, 4))),
           alertComment,
-          transactions: rows.
-            Skip(1).Select(row => new Transaction(
+          transactions: accountRows.
+            Skip(1).
+            Select(row => new Transaction(
               page: row.page,
               row: row.row,
-              text: row.text)));
+              text: row.text)).
+            Trace("AccountRows/Transactions", tracer));
       }).
-      Trace("Row/Section", tracer);
+      Trace("AccountRows/Account", tracer);
 
-    var report = new Report(
-      report: page.report,
-      correctnessDate: page.correctnessDate,
-      destinationBranch: page.destinationBranch,
-      recipientType: page.recipientType,
-      recipientNumber: page.recipientNumber,
-      accounts);
-
-    if (!accounts.Any())
-    {
-      return Array.Empty<XElement>();
-    }
-
-    return new[] { ToXml(report, "report")! };
+    return accounts.Select(ToXml);
   }
 }
