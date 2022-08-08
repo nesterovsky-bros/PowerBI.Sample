@@ -35,12 +35,12 @@ public static class Reports
   /// <param name="items">Report pages.</param>
   /// <param name="tracer">Optional tracer instance.</param>
   /// <returns>Enumerable produced by parsing report.</returns>
-  public static IEnumerable<object?> DefaultHandler(
+  public static IEnumerable<object> DefaultHandler(
     IEnumerable<Page> items, 
     ITracer? tracer) =>
     Handlers.TryGetValue(items.First().Report, out var handler) ?
     handler.Parse(items, tracer) :
-    Array.Empty<object?>();
+    Array.Empty<object>();
 
   /// <summary>
   /// Parses the report.
@@ -52,7 +52,7 @@ public static class Reports
   public static IEnumerable<object> Parse(
     IEnumerable<string> lines,
     ITracer? tracer = null,
-    Func<IEnumerable<Page>, ITracer?, IEnumerable<object?>>? handler = null) =>
+    Func<IEnumerable<Page>, ITracer?, IEnumerable<object>>? handler = null) =>
     lines.
       Trace("/Line", tracer).
       GroupAdjacent(startsAt: line => line.StartsWith("1")).
@@ -77,11 +77,8 @@ public static class Reports
         page.RecipientNumber
       )).
       Trace("Page/ReportPages", tracer).
-      SelectMany(pages => 
-        handler != null ? 
-          handler(pages, tracer) : 
-          DefaultHandler(pages, tracer)).
-      Where(item => item != null) as IEnumerable<object>;
+      SelectMany(pages => handler != null ? 
+        handler(pages, tracer) : DefaultHandler(pages, tracer));
 
   public static string Substring(string? value, int start, int length)
   {

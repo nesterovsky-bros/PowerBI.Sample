@@ -60,18 +60,18 @@ public class Report1203001: IReport
 
   public int ReportNumber => 1203001;
 
-  IEnumerable<object?> IReport.Parse(
+  IEnumerable<object> IReport.Parse(
     IEnumerable<Page> items, 
     ITracer? tracer) => Parse(items, tracer);
 
-  public static IEnumerable<Account?> Parse(
+  public static IEnumerable<Account> Parse(
     IEnumerable<Page> pages, 
     ITracer? tracer)
   {
     var page = pages.First();
 
     return pages.
-      Where(page => page.Lines!.Length > 5 &&
+      Where(page => page.Lines!.Length > 8 &&
         !page.Lines[4].
           Contains("*****     ! ! ! ! !   ה ז   ף י נ ס ל   ם ו י ה   ת ו ע ו נ ת   ן י א     *****")).
       Select(page => page.Lines!.
@@ -88,7 +88,7 @@ public class Report1203001: IReport
             text.EndsWith("|ןח .סמ") ? 'I' : // Info
             text.EndsWith("| רוקמ") ? 'T' : // Transaction
             text.EndsWith(":תורעה") ? 'C' : // Comment
-            text.EndsWith("|  עוציב .ת") ? 'O' : ' ' // Operation; other
+            text.EndsWith("|  עוציב .ת") ? 'O' : ' ' // Operation; Other
         )).
         Where(item => item.type != 'E')).
       SelectMany(item => item).
@@ -205,6 +205,6 @@ public class Report1203001: IReport
 
             return account;
           })).
-        Trace("Section/Account", tracer);
+      Trace("Section/Account", tracer);
   }
 }
