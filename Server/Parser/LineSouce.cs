@@ -2,7 +2,7 @@
 using System.Text;
 using System.Xml;
 
-namespace NesterovskyBros.Parser;
+namespace NesterovskyBros.Collections;
 
 /// <summary>
 /// A disposable stream source.
@@ -95,9 +95,8 @@ public class LineSource
   /// <returns>a content lines enumerator.</returns>
   public IEnumerable<string> GetXmlLines()
   {
-    bool hasData = false;
-    bool topEmptyLine = true;
-
+    var hasData = false;
+    var topEmptyLine = true;
     using var stream = GetStream();
     using var reader = XmlReader.Create(stream);
 
@@ -107,11 +106,11 @@ public class LineSource
       {
         case XmlNodeType.Element:
         {
-          if(reader.LocalName == "raw")
+          if (reader.LocalName == "raw")
           {
             var lines = reader.ReadString();
 
-            if(lines != null)
+            if (lines != null)
             {
               var stringReader = new StringReader(lines);
 
@@ -119,14 +118,14 @@ public class LineSource
               {
                 var value = stringReader.ReadLine();
 
-                if(value == null)
+                if (value == null)
                 {
                   break;
                 }
 
                 hasData = true;
 
-                if(topEmptyLine && SkipTopEmptyLines &&
+                if (topEmptyLine && SkipTopEmptyLines &&
                   string.IsNullOrWhiteSpace(value))
                 {
                   continue;
@@ -144,7 +143,7 @@ public class LineSource
       }
     }
 
-    if(!hasData)
+    if (!hasData)
     {
       throw new IOException("No data is found in.");
     }
@@ -156,8 +155,8 @@ public class LineSource
   /// <returns>a content lines enumerator.</returns>
   public IEnumerable<string> GetXmlGzLines()
   {
-    bool hasData = false;
-    bool topEmptyLine = true;
+    var hasData = false;
+    var topEmptyLine = true;
 
     using var stream = GetStream();
     using var gzipStream = new GZipStream(stream, CompressionMode.Decompress);
@@ -169,11 +168,11 @@ public class LineSource
       {
         case XmlNodeType.Element:
         {
-          if(reader.LocalName == "raw")
+          if (reader.LocalName == "raw")
           {
             var lines = reader.ReadString();
 
-            if(lines != null)
+            if (lines != null)
             {
               var stringReader = new StringReader(lines);
 
@@ -181,14 +180,14 @@ public class LineSource
               {
                 var value = stringReader.ReadLine();
 
-                if(value == null)
+                if (value == null)
                 {
                   break;
                 }
 
                 hasData = true;
 
-                if(topEmptyLine && SkipTopEmptyLines &&
+                if (topEmptyLine && SkipTopEmptyLines &&
                   string.IsNullOrWhiteSpace(value))
                 {
                   continue;
@@ -206,7 +205,7 @@ public class LineSource
       }
     }
 
-    if(!hasData)
+    if (!hasData)
     {
       throw new IOException("No data is found in.");
     }
@@ -220,21 +219,21 @@ public class LineSource
   /// <returns>A data enumerator.</returns>
   private IEnumerable<string> GetLines(TextReader reader, int width)
   {
-    char[] buffer = new char[width];
-    bool topEmptyLine = true;
+    var buffer = new char[width];
+    var topEmptyLine = true;
 
     while(true)
     {
       int count = reader.ReadBlock(buffer, 0, width);
 
-      if(count == 0)
+      if (count == 0)
       {
         break;
       }
 
-      string line = new string(buffer, 0, count);
+      var line = new string(buffer, 0, count);
 
-      if(topEmptyLine && SkipTopEmptyLines &&
+      if (topEmptyLine && SkipTopEmptyLines &&
         string.IsNullOrWhiteSpace(line))
       {
         continue;
@@ -253,18 +252,18 @@ public class LineSource
   /// <returns>A data enumerator.</returns>
   private IEnumerable<string> GetLines(TextReader reader)
   {
-    bool topEmptyLine = true;
+    var topEmptyLine = true;
 
     while(true)
     {
       var value = reader.ReadLine();
 
-      if(value == null)
+      if (value == null)
       {
         break;
       }
 
-      if(topEmptyLine && SkipTopEmptyLines &&
+      if (topEmptyLine && SkipTopEmptyLines &&
         string.IsNullOrWhiteSpace(value))
       {
         continue;

@@ -3,18 +3,20 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 
 using NesterovskyBros.Bidi;
-using NesterovskyBros.Parser;
+using NesterovskyBros.Collections;
 
 namespace Parser.Reports;
 
-public record Page(
-  int page,
-  int report,
-  DateTime correctnessDate,
-  int destinationBranch,
-  string recipientType,
-  int recipientNumber,
-  string[] lines);
+public record Page
+{
+  public int PageNumber { get; init; }
+  public int Report { get; init; }
+  public DateTime CorrectnessDate { get; init; }
+  public int DestinationBranch { get; init; }
+  public string? RecipientType { get; init; }
+  public int RecipientNumber { get; init; }
+  public string[]? Lines { get; init; }
+}
 
 public static class Reports
 {
@@ -36,7 +38,7 @@ public static class Reports
   public static IEnumerable<object?> DefaultHandler(
     IEnumerable<Page> items, 
     ITracer? tracer) =>
-    Handlers.TryGetValue(items.First().report, out var handler) ?
+    Handlers.TryGetValue(items.First().Report, out var handler) ?
     handler.Parse(items, tracer) :
     Array.Empty<object?>();
 
@@ -50,64 +52,61 @@ public static class Reports
   public static IEnumerable<object> Parse(
     IEnumerable<string> lines,
     ITracer? tracer = null,
-    Func<IEnumerable<Page>, ITracer?, IEnumerable<object?>>? handler = null)
-  {
-    handler ??= DefaultHandler;
-
-    var pages = lines.
+    Func<IEnumerable<Page>, ITracer?, IEnumerable<object?>>? handler = null) =>
+    lines.
       Trace("/Line", tracer).
       GroupAdjacent(startsAt: line => line.StartsWith("1")).
-      Select(Enumerable.ToArray).
-      Select((lines, index) => new Page(
-        page: index + 1,
-        report: Int(lines[1], 92, 7),
-        correctnessDate: Date(lines[1], 16, 8),
-        destinationBranch: Int(lines[0], 34, 3),
-        recipientType: String(lines[0], 32, 1)!,
-        recipientNumber: Int(lines[0], 37, 2),
-        lines: lines)).
-      Trace("Line/Page", tracer);
-
-    var reports = pages.
-      GroupAdjacent(item =>
+      Select(lines => lines.ToArray()).
+      Select((lines, index) => new Page
+      {
+        PageNumber = index + 1,
+        Report = Int(lines[1], 92, 7),
+        CorrectnessDate = Date(lines[1], 16, 8),
+        DestinationBranch = Int(lines[0], 34, 3),
+        RecipientType = String(lines[0], 32, 1)!,
+        RecipientNumber = Int(lines[0], 37, 2),
+        Lines = lines
+      }).
+      Trace("Line/Page", tracer).
+      GroupAdjacent(page =>
       (
-        item.report,
-        item.correctnessDate,
-        item.destinationBranch,
-        item.recipientType,
-        item.recipientNumber
+        page.Report,
+        page.CorrectnessDate,
+        page.DestinationBranch,
+        page.RecipientType,
+        page.RecipientNumber
       )).
-      Trace("Page/ReportPages", tracer);
-
-    return reports.
-      SelectMany(report => handler(report, tracer)).
+      Trace("Page/ReportPages", tracer).
+      SelectMany(pages => 
+        handler != null ? 
+          handler(pages, tracer) : 
+          DefaultHandler(pages, tracer)).
       Where(item => item != null) as IEnumerable<object>;
-  }
 
   public static string Substring(string? value, int start, int length)
   {
-    if(value == null)
+    if (value == null)
     {
       return "";
     }
 
-    if(start < 0)
+    if (start < 0)
     {
       length += start;
       start = 0;
     }
 
-    if(start >= value.Length)
+    if (start >= value.Length)
     {
       return "";
     }
 
-    if(start + length > value.Length)
+    if (start + length > value.Length)
     {
       length = value.Length - start;
     }
 
-    if(length <= 0)
+    if (length <= 0)
     {
       return "";
     }
@@ -126,22 +125,22 @@ public static class Reports
   {
     value = Substring(value, start, length);
 
-    if(normalize)
+    if (normalize)
     {
       value = Normalize(value);
     }
-    else if(trim)
+    else if (trim)
     {
       value = value.Trim();
     }
     // No more cases.
 
-    if(nullIfEmpty && string.IsNullOrWhiteSpace(value))
+    if (nullIfEmpty && string.IsNullOrWhiteSpace(value))
     {
       return null;
     }
 
-    if(bidi)
+    if (bidi)
     {
       value = Bidi(value);
     }
@@ -209,8 +208,16 @@ public static class Reports
     value = Substring(value, start, length);
 
     return format == null ?
-      DateTime.ParseExact(value, dateFormats, null, DateTimeStyles.AllowWhiteSpaces) :
-      DateTime.ParseExact(value, format, null);
+      DateTime.ParseExact(
+        value, 
+        dateFormats, 
+        null, 
+        DateTimeStyles.AllowWhiteSpaces) :
+      DateTime.ParseExact(
+        value, 
+        format, 
+        null, 
+        DateTimeStyles.AllowWhiteSpaces);
   }
 
   public static DateTime? TryDate(

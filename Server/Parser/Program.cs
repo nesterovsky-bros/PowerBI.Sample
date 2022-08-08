@@ -2,9 +2,9 @@
 using System.Text;
 using System.Xml;
 
-using NesterovskyBros.Parser;
+using NesterovskyBros.Collections;
 
-using static NesterovskyBros.Parser.Functions;
+using static NesterovskyBros.Collections.Functions;
 
 using Parser.Reports;
 
@@ -18,33 +18,31 @@ var lineSource = new LineSource
   SkipTopEmptyLines = true
 };
 
-using var tracer = new Tracer();
-
+var xmlSettings = new XmlWriterSettings()
 {
-  var stopwatch = Stopwatch.StartNew();
-  var results = Reports.Parse(lineSource.GetLines(), tracer);
+  Indent = true,
+  OmitXmlDeclaration = true,
+  ConformanceLevel = ConformanceLevel.Fragment
+};
 
-  using var writer = XmlWriter.Create(
-    output,
-    new()
-    {
-      Indent = true,
-      OmitXmlDeclaration = true,
-      ConformanceLevel = ConformanceLevel.Fragment
-    });
+using var tracer = new Tracer();
+var stopwatch = Stopwatch.StartNew();
+
+using(var writer = XmlWriter.Create(output, xmlSettings))
+{
+  var results = Reports.Parse(lineSource.GetLines(), tracer).ToXml();
 
   foreach(var result in results)
   {
-    ToXml(result!)!.WriteTo(writer);
+    result!.WriteTo(writer);
   }
-
-  stopwatch.Stop();
-
-  Console.WriteLine($"Execution time: {stopwatch.Elapsed}s.\n"); 
 }
 
-Console.WriteLine(
-  "Action,Count,Avg,Duration,Path");
+stopwatch.Stop();
+
+Console.WriteLine($"Execution time: {stopwatch.Elapsed}s.\n");
+
+Console.WriteLine("Action,Count,Avg,Duration,Path");
 
 foreach(var item in tracer.GetStatisticsByPath())
 {
