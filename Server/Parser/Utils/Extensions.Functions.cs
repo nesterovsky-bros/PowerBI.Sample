@@ -1,10 +1,13 @@
-namespace NesterovskyBros.Collections;
+namespace NesterovskyBros.Utils;
 
 using System.Collections;
 using System.Xml;
 using System.Xml.Linq;
 
-public static class Functions
+/// <summary>
+/// Extension functions to simplify streaming processing.
+/// </summary>
+public static partial class Extensions
 {
   /// <summary>
   /// Converts a enumerable of objects into an enumerable of 
@@ -115,15 +118,9 @@ public static class Functions
 
   private static bool IsSimpleType(Type type)
   {
-    return type.IsPrimitive || type.IsEnum || WriteTypes.Contains(type);
+    return type.IsPrimitive || 
+      type.IsEnum ||
+      (type == typeof(Guid)) ||
+      (Type.GetTypeCode(type) != TypeCode.Object);
   }
-
-  private static readonly Type[] WriteTypes = new[]
-  {
-    typeof(string),
-    typeof(DateTime),
-    typeof(Enum),
-    typeof(decimal),
-    typeof(Guid),
-  };
 }

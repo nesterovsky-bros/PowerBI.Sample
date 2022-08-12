@@ -1,0 +1,104 @@
+<style>
+    .status-form
+    {
+        display: inline-block;
+        direction: rtl;
+    }
+
+    .update-area
+    {
+        text-align: left;
+    }
+</style>
+<form class="status-form" onchange="document.getElementById('log').textContent = event.timeStamp" oninput="document.getElementById('log').textContent = event.timeStamp">
+<fieldset>
+    <legend>סטטוס של טיפול</legend>
+    <table>
+        <tr>
+            <td><label for="manager">אישור מנהל</label></td>
+            <td><input type="checkbox" name="manager-status" id="manager-status"/></td>
+            <td><label for="manager-comment">הערות מנהל</label></td>
+            <td><input type="text" name="manager-comment" id="manager-comment"/></td>
+        </tr>
+        <tr>
+            <td><label for="clerk-status">טיפול בנקאי</label></td>
+            <td><input type="checkbox" name="clerk-status" id="clerk-status"/></td>
+            <td><label for="clerk-comment">הערות בנקאי</label></td>
+            <td><input type="text" name="clerk-comment" id="clerk-comment"/></td>
+        </tr>
+        <tr>
+            <td><label for="robot-status">יתרות זכות</label></td>
+            <td><input type="checkbox" name="robot-status" id="robot-status"/></td>
+            <td colspan="2" class="update-area">
+                <button name="update" id="update">אישור</button>
+            </td>
+        </tr>
+    </table>
+</fieldset>
+</form>
+<script>
+class Visual
+{
+    id;
+    managerCheckbox;
+    managerComment;
+    cleckCheckbox;
+    clerkComment;
+    robotCheckbox;
+
+    constructor(target)
+    {
+        this.managerCheckbox = target.querySelector("#manager-status");
+        this.managerComment = target.querySelector("#manager-comment");
+        this.clerkCheckbox = target.querySelector("#clerk-status");
+        this.clerkComment = target.querySelector("#clerk-comment");
+        this.robotCheckbox = target.querySelector("#robot-status");
+        updateButton = target.querySelector("#update");
+
+        updateButton.addEventListener("click", e => this.updateData(e));
+    }
+
+    updateData(e)
+    {
+        const id = this.id;
+
+        if (!id)
+        {
+            return Promise.reject();
+        }
+
+        const managerCheck = this.managerCheckbox.checked;
+        const managerComment = this.managerComment.value;
+        const clerkCheck = this.clerkCheckbox.checked;
+        const clerkComment = this.clerkComment.value;
+        const robotCheck = this.robotCheckbox.checked;
+
+        await fetch(
+            "http://localhost/api/Status",
+            {
+                method: "POST",
+                mode: "cors",
+                headers: 
+                {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(
+                { 
+                    id, 
+                    managerCheck, 
+                    managerComment,
+                    clerkCheck,
+                    clerkComment,
+                    robotCheck 
+                })
+            }).
+            then(
+                result => console.log(result),
+                error => console.log(error)
+            );
+    }
+}
+
+new Visual(document.body);
+
+</script>

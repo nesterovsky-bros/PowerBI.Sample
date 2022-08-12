@@ -3,56 +3,32 @@
         {
             "displayName": "Data ID",
             "name": "id",
-            "kind": "Measure",
-            "requiredTypes": 
-            [
-                {
-                    "text": true
-                },
-                {
-                    "numeric": true
-                },
-                {
-                    "integer": true
-                }
-            ],
-            "preferredTypes": [
-                {
-                    "text": true
-                }
-            ]
+            "kind": "GroupingOrMeasure"
         },
         {
-            "displayName": "Check indicator",
-            "name": "check",
-            "kind": "Measure",
-            "requiredTypes": 
-            [
-                {
-                    "bool": true
-                }
-            ],
-            "preferredTypes": [
-                {
-                    "bool": true
-                }
-            ]
+            "displayName": "Manager Check Indicator",
+            "name": "managerCheck",
+            "kind": "GroupingOrMeasure"
         },
         {
-            "displayName": "Comment",
-            "name": "comment",
-            "kind": "Measure",
-            "requiredTypes": 
-            [
-                {
-                    "text": true
-                }
-            ],
-            "preferredTypes": [
-                {
-                    "text": true
-                }
-            ]
+            "displayName": "Manager Comment",
+            "name": "managerComment",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Clerk Check Indicator",
+            "name": "clerkCheck",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Clerk Comment",
+            "name": "clerkComment",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Robot Check Indicator",
+            "name": "robotCheck",
+            "kind": "GroupingOrMeasure"
         }
     ],
     "dataViewMappings": [
@@ -66,27 +42,32 @@
                         "max": 1
                     },
                     "comment": {
+                        "min": 0,
                         "max": 1
                     }
                 }
             ],
             "categorical": {
-                "values": {
-                    "select": [
-                        {
-                            "bind": {
-                                "to": "id"
-                            }
+                "categories": {
+                    "select": 
+                    [
+                        { 
+                            "for": { "in": "id" }
                         },
-                        {
-                            "bind": {
-                                "to": "check"
-                            }
+                        { 
+                            "for": { "in": "managerCheck" }
                         },
-                        {
-                            "bind": {
-                                "to": "comment"
-                            }
+                        { 
+                            "for": { "in": "managerComment" }
+                        },
+                        { 
+                            "for": { "in": "clerkCheck" }
+                        },
+                        { 
+                            "for": { "in": "clerkComment" }
+                        },
+                        { 
+                            "for": { "in": "robotCheck" }
                         }
                     ]
                 }
@@ -95,12 +76,12 @@
     ],
     "objects": 
     {
-        "updateObject": {
-            "displayName": "Update opbject",
-            "properties": 
-            {
-                "endpoint": {
-                    "displayName": "endpoint url",
+        "endpoint": {
+            "displayName": "Endpoint configuration",
+            "properties": {
+                "url": 
+                {
+                    "displayName": "Endpoint url",
                     "type": 
                     {
                         "text": true

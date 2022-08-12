@@ -35,19 +35,22 @@ import VisualObjectInstance = powerbi.VisualObjectInstance;
 import DataView = powerbi.DataView;
 import VisualObjectInstanceEnumeration = powerbi.VisualObjectInstanceEnumeration;
 
-import IVisualHost = powerbi.extensibility.IVisualHost;
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+import VisualEnumerationInstanceKinds = powerbi.VisualEnumerationInstanceKinds;
 
 import { VisualSettings } from "./settings";
-
 
 export class Visual implements IVisual {
     private settings: VisualSettings;
 
     private host: IVisualHost;
-    private idInput: HTMLInputElement;
-    private checkInput: HTMLInputElement;
-    private commentInput: HTMLInputElement;
-    private log: HTMLElement;
+    private id: any;
+    private managerCheckbox: HTMLInputElement;
+    private managerComment: HTMLInputElement;
+    private clerkCheckbox: HTMLInputElement;
+    private clerkComment: HTMLInputElement;
+    private robotCheckbox: HTMLInputElement;
+    private updateButton: HTMLButtonElement;
 
     constructor(options: VisualConstructorOptions)
     {
@@ -56,63 +59,17 @@ export class Visual implements IVisual {
         if (document) 
         {
             const target = options.element;
-            const table = document.createElement("table");
-            const idRow = document.createElement("tr");
-            const checkRow = document.createElement("tr");
-            const commentRow = document.createElement("tr");
-            const buttonRow = document.createElement("tr");
-            const idInput = document.createElement("input");
-            const checkInput = document.createElement("input");
-            const commentInput = document.createElement("input");
-            const button = document.createElement("button");
 
-            idInput.type = "text";
-            checkInput.type = "checkbox";
-            commentInput.type = "text";
-            button.textContent = "Update";
+            target.innerHTML = template;
 
-            table.setAttribute("border", "1");
+            this.managerCheckbox = target.querySelector("#manager-status");
+            this.managerComment = target.querySelector("#manager-comment");
+            this.clerkCheckbox = target.querySelector("#clerk-status");
+            this.clerkComment = target.querySelector("#clerk-comment");
+            this.robotCheckbox = target.querySelector("#robot-status");
+            this.updateButton = target.querySelector("#update");
 
-            table.appendChild(idRow);
-            table.appendChild(checkRow);
-            table.appendChild(commentRow);
-            table.appendChild(buttonRow);
-
-            let cell = document.createElement("td");
-
-            cell.textContent = "ID";
-            idRow.appendChild(cell);
-            cell = document.createElement("td");
-            idRow.appendChild(cell);
-            cell.appendChild(idInput);
-
-            cell = document.createElement("td");
-            cell.textContent = "Check";
-            checkRow.appendChild(cell);
-            cell = document.createElement("td");
-            checkRow.appendChild(cell);
-            cell.appendChild(checkInput);
-            
-            cell = document.createElement("td");
-            cell.textContent = "Comment";
-            commentRow.appendChild(cell);
-            cell = document.createElement("td");
-            commentRow.appendChild(cell);
-            cell.appendChild(commentInput);
-
-            this.log = cell = document.createElement("td");
-            buttonRow.appendChild(cell);
-            cell = document.createElement("td");
-            buttonRow.appendChild(cell);
-            cell.appendChild(button);
-
-            target.appendChild(table);
-
-            this.idInput = idInput;
-            this.checkInput = checkInput;
-            this.commentInput = commentInput;
-
-            button.addEventListener("click", e => this.updateData(e));
+            this.updateButton.addEventListener("click", e => this.updateData(e));
         }
     }
 
@@ -121,13 +78,23 @@ export class Visual implements IVisual {
 
         let dataView: DataView = options.dataViews[0];
 
-        const id = dataView?.categorical?.values?.[0].single;
-        const check = dataView?.categorical?.values?.[1].single;
-        const comment = dataView?.categorical?.values?.[2].single;
+        const id = dataView?.categorical?.categories?.[0]?.values?.[0];
 
-        this.idInput.value = String(id);
-        this.checkInput.checked = !!check;
-        this.commentInput.value = String(comment);
+        if (id !== this.id)
+        {
+            const managerCheck = dataView?.categorical?.categories?.[1]?.values?.[0];
+            const managerComment = dataView?.categorical?.categories?.[2]?.values?.[0];
+            const clerkCheck = dataView?.categorical?.categories?.[3]?.values?.[0];
+            const clerkComment = dataView?.categorical?.categories?.[4]?.values?.[0];
+            const robotCheck = dataView?.categorical?.categories?.[5]?.values?.[0];
+    
+            this.id = id;
+            this.managerCheckbox.checked = !!managerCheck;
+            this.managerComment.value = String(managerComment ?? "");
+            this.clerkCheckbox.checked = !!clerkCheck;
+            this.clerkComment.value = String(clerkComment ?? "");
+            this.robotCheckbox.checked = !!robotCheck;
+        }
     }
 
     /**
@@ -137,30 +104,82 @@ export class Visual implements IVisual {
      */
     public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration 
     {
-        return VisualSettings.enumerateObjectInstances(this.settings || VisualSettings.getDefault(), options);
+        var result = VisualSettings.enumerateObjectInstances(this.settings || VisualSettings.getDefault(), options);
+
+        (Array.isArray(result) ? result : result?.instances).forEach(instance =>
+        {
+            if (instance?.objectName === "endpoint")
+            {
+                instance.propertyInstanceKind ??= {}; 
+                instance.propertyInstanceKind["url"] = VisualEnumerationInstanceKinds.ConstantOrRule;
+            }
+        });
+
+        return result;
     }
 
     private async updateData(e: Event): Promise<void>
     {
-        const id = this.idInput.value;
-        const check = this.checkInput.checked;
-        const comment = this.commentInput.value;
+        const id = this.id;
 
-        this.log.textContent = `Querying...`;
-
-        const response = await fetch("https://localhost:7096/api/Status",
+        if (!id)
         {
-            method: "POST",
-            mode: "cors",
-            headers: 
+            return;
+        }
+
+        const managerCheck = this.managerCheckbox.checked;
+        const managerComment = this.managerComment.value;
+        const clerkCheck = this.clerkCheckbox.checked;
+        const clerkComment = this.clerkComment.value;
+        const robotCheck = this.robotCheckbox.checked;
+
+        await fetch(
+            this.settings.endpoint.url,
             {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ ID: Number(id || 0), check, comment })
-        });
+                method: "POST",
+                mode: "cors",
+                headers: 
+                {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(
+                { 
+                    id, 
+                    managerCheck, 
+                    managerComment,
+                    clerkCheck,
+                    clerkComment,
+                    robotCheck 
+                })
+            });
 
-        const result = await response.json();
-
-        this.log.textContent = `Result: ${JSON.stringify(result)}`;
+        this.host.refreshHostData();
     }
 }
+
+const template = `<form class="status-form">
+<fieldset>
+    <legend>סטטוס של טיפול</legend>
+    <table>
+        <tr>
+            <td><label for="manager">אישור מנהל</label></td>
+            <td><input type="checkbox" name="manager-status" id="manager-status"/></td>
+            <td><label for="manager-comment">הערות מנהל</label></td>
+            <td><input type="text" name="manager-comment" id="manager-comment"/></td>
+        </tr>
+        <tr>
+            <td><label for="clerk-status">טיפול בנקאי</label></td>
+            <td><input type="checkbox" name="clerk-status" id="clerk-status"/></td>
+            <td><label for="clerk-comment">הערות בנקאי</label></td>
+            <td><input type="text" name="clerk-comment" id="clerk-comment"/></td>
+        </tr>
+        <tr>
+            <td><label for="robot-status">יתרות זכות</label></td>
+            <td><input type="checkbox" name="robot-status" id="robot-status"/></td>
+            <td colspan="2" class="update-area">
+                <button name="update" id="update">אישור</button>
+            </td>
+        </tr>
+    </table>
+</fieldset>
+</form>`;

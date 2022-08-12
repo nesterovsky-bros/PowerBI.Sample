@@ -2,11 +2,7 @@
 using System.Text;
 using System.Xml;
 
-using NesterovskyBros.Collections;
-
-using static NesterovskyBros.Collections.Functions;
-
-using Parser.Reports;
+using NesterovskyBros.Utils;
 
 var input = args[0];
 var output = args[1];
@@ -30,7 +26,9 @@ var stopwatch = Stopwatch.StartNew();
 
 using(var writer = XmlWriter.Create(output, xmlSettings))
 {
-  var results = Reports.Parse(lineSource.GetLines(), tracer).ToXml();
+  var results = Parser.Reports.Branch.Reports.
+    Parse(lineSource.GetLines(), tracer).
+    ToXml();
 
   foreach(var result in results)
   {

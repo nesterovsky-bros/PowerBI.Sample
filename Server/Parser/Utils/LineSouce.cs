@@ -2,7 +2,7 @@
 using System.Text;
 using System.Xml;
 
-namespace NesterovskyBros.Collections;
+namespace NesterovskyBros.Utils;
 
 /// <summary>
 /// A disposable stream source.

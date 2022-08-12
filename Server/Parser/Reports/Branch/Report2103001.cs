@@ -1,10 +1,10 @@
-﻿namespace Parser.Reports;
+﻿using NesterovskyBros.Utils;
 
-using NesterovskyBros.Collections;
+using static NesterovskyBros.Utils.Extensions;
 
-using static Parser.Reports.Reports;
+namespace Parser.Reports.Branch;
 
-public class Report1203001: IReport
+public class Report1203001: Report<Report1203001.Account>
 {
   public record Transaction
   {
@@ -58,14 +58,10 @@ public class Report1203001: IReport
     public Operation[]? Operations { get; init; }
   };
 
-  public int ReportNumber => 1203001;
+  public override int ReportNumber => 1203001;
 
-  IEnumerable<object> IReport.Parse(
-    IEnumerable<Page> items, 
-    ITracer? tracer) => Parse(items, tracer);
-
-  public static IEnumerable<Account> Parse(
-    IEnumerable<Page> pages, 
+  public override IEnumerable<Account> Parse(
+    IEnumerable<Page> pages,
     ITracer? tracer)
   {
     var page = pages.First();
@@ -142,7 +138,7 @@ public class Report1203001: IReport
                     Skip(2).
                     Where(row => !row.text.EndsWith(":טרופמ רואת  ")).
                     Select(row => new Transaction
-                    { 
+                    {
                       Page = row.page,
                       Row = row.row,
                       Origin = String(row.text, 128, 5, bidi: true),
@@ -180,7 +176,7 @@ public class Report1203001: IReport
                   Operations = group.
                     Skip(2).
                     Select(row => new Operation
-                    { 
+                    {
                       Page = row.page,
                       Row = row.row,
                       Date = TryDate(row.text, 123, 10),
