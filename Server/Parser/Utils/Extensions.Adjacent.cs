@@ -6,7 +6,7 @@ namespace NesterovskyBros.Utils;
 public static partial class Extensions
 {
   /// <summary>
-  /// Ranks elements of enumeration by key.
+  /// Ranks adjacent elements of enumeration by a key.
   /// </summary>
   /// <typeparam name="T">An element type.</typeparam>
   /// <typeparam name="K">A key type.</typeparam>
@@ -27,7 +27,7 @@ public static partial class Extensions
     {
       var key = keySelector(item);
 
-      if (rank == 0 || !comparer.Equals(prev, key))
+      if ((rank == 0) || !comparer.Equals(prev, key))
       {
         ++rank;
       }
@@ -38,6 +38,15 @@ public static partial class Extensions
     }
   }
 
+  /// <summary>
+  /// Ranks adjacent elements of enumeration using comparer.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <param name="comparer">An elements comparer.</param>
+  /// <returns>
+  /// A enumeration of value tuples <c>(int rank, T item)</c>.
+  /// </returns>
   public static IEnumerable<(int rank, T item)> RankAdjacent<T>(
     this IEnumerable<T> source,
     IEqualityComparer<T> comparer)
@@ -47,7 +56,7 @@ public static partial class Extensions
 
     foreach(var item in source)
     {
-      if (rank == 0 || !comparer.Equals(prev, item))
+      if ((rank == 0) || !comparer.Equals(prev, item))
       {
         ++rank;
       }
@@ -58,6 +67,21 @@ public static partial class Extensions
     }
   }
 
+  /// <summary>
+  /// Ranks adjacent elements of enumeration using predicates 
+  /// to start and end the rank.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <param name="startsAt">
+  /// Optional predicate to start a new rank upon true result.
+  /// </param>
+  /// <param name="endsAt">
+  /// Optional predicate to end the rank upon true result.
+  /// </param>
+  /// <returns>
+  /// A enumeration of value tuples <c>(int rank, T item)</c>.
+  /// </returns>
   public static IEnumerable<(int rank, T item)> RankAdjacent<T>(
     this IEnumerable<T> source,
     Func<T, bool>? startsAt = null,
@@ -78,6 +102,14 @@ public static partial class Extensions
     }
   }
 
+  /// <summary>
+  /// Groups adjacent elements of enumeration by a key.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <typeparam name="K">A key type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <param name="keySelector">A key selector.</param>
+  /// <returns>A enumeration of enumerations of elements.</returns>
   public static IEnumerable<IEnumerable<T>> GroupAdjacent<T, K>(
     this IEnumerable<T> source,
     Func<T, K> keySelector) =>
@@ -86,6 +118,13 @@ public static partial class Extensions
       GroupAdjacent().
       RemoveRank();
 
+  /// <summary>
+  /// Groups adjacent elements of enumeration using comparer.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <param name="comparer">An elements comparer.</param>
+  /// <returns>A enumeration of enumerations of elements.</returns>
   public static IEnumerable<IEnumerable<T>> GroupAdjacent<T>(
     this IEnumerable<T> source,
     IEqualityComparer<T> comparer) =>
@@ -94,6 +133,19 @@ public static partial class Extensions
       GroupAdjacent().
       RemoveRank();
 
+  /// <summary>
+  /// Groups adjacent elements of enumeration using predicates 
+  /// to start and end the group.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <param name="startsAt">
+  /// Optional predicate to start a new group upon true result.
+  /// </param>
+  /// <param name="endsAt">
+  /// Optional predicate to end the group upon true result.
+  /// </param>
+  /// <returns>A enumeration of enumerations of elements.</returns>
   public static IEnumerable<IEnumerable<T>> GroupAdjacent<T>(
     this IEnumerable<T> source,
     Func<T, bool>? startsAt = null,
@@ -103,6 +155,13 @@ public static partial class Extensions
       GroupAdjacent().
       RemoveRank();
 
+  /// <summary>
+  /// Converts ranked enumeration of adjcent elements into group of 
+  /// enumerations by rank.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <returns>A enumeration of enumerations of elements.</returns>
   public static IEnumerable<IEnumerable<(int rank, T item)>> GroupAdjacent<T>(
     this IEnumerable<(int rank, T item)> source)
   {
@@ -163,7 +222,13 @@ public static partial class Extensions
     }
   }
 
+  /// <summary>
+  /// Converts ranked enumeration of elements into enumeration of elements.
+  /// </summary>
+  /// <typeparam name="T">An element type.</typeparam>
+  /// <param name="source">A source enumerable.</param>
+  /// <returns>An enumeration of elements.</returns>
   public static IEnumerable<IEnumerable<T>> RemoveRank<T>(
-    this IEnumerable<IEnumerable<(int rank, T item)>> items) =>
-    items.Select(group => group.Select(ranked => ranked.item));
+    this IEnumerable<IEnumerable<(int rank, T item)>> source) =>
+    source.Select(group => group.Select(ranked => ranked.item));
 }
