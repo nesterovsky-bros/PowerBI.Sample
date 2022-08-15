@@ -5,13 +5,7 @@ using System.Diagnostics;
 
 public interface ITracer: IDisposable
 {
-  public interface IScope: IDisposable
-  {
-    void Add(IDisposable resource);
-    void Release(IDisposable resource);
-  }
-
-  IScope? Scope(string? name, string action);
+  IDisposable? Scope(string? name, string action);
 }
 
 public interface ITraceable
@@ -94,7 +88,7 @@ public class Tracer: ITracer
     return items;
   }
 
-  public ITracer.IScope? Scope(string? name, string? action)
+  public IDisposable? Scope(string? name, string? action)
   {
     if (!CollectedStatistics.TryGetValue((name, action), out var statistics))
     {
@@ -115,14 +109,12 @@ public class Tracer: ITracer
     };
   }
 
-  private HashSet<IDisposable> resources = 
+  private readonly HashSet<IDisposable> resources = 
     new(ReferenceEqualityComparer.Instance);
 
-  private class TracerScope: ITracer.IScope
+  private class TracerScope: IDisposable
   {
     public Tracer? tracer;
-    public HashSet<IDisposable> resources =
-      new(ReferenceEqualityComparer.Instance);
     public Statistics? statistics;
     public long timestamp;
 
@@ -130,26 +122,6 @@ public class Tracer: ITracer
     {
       ++statistics!.Count;
       statistics!.Duration += Stopwatch.GetTimestamp() - timestamp;
-
-      foreach(var resource in resources)
-      {
-        tracer?.resources.Remove(resource);
-        resource.Dispose();
-      }
-
-      resources.Clear();
-    }
-
-    public void Add(IDisposable resource)
-    {
-      resources.Add(resource);
-      tracer?.resources.Add(resource);
-    }
-
-    public void Release(IDisposable resource)
-    {
-      tracer?.resources.Remove(resource);
-      resources.Remove(resource);
     }
   }
 }
@@ -193,8 +165,8 @@ public static partial class Extensions
         Source = source 
       };
 
-  private class TraceableEnumerable<T, C> : ITraceable, IEnumerable<T>
-    where C : IEnumerable<T>
+  private class TraceableEnumerable<T, C>: ITraceable, IEnumerable<T>
+    where C: IEnumerable<T>
   {
     public string? Name { get; init; }
     public ITracer? Tracer { get; init; }
@@ -203,34 +175,24 @@ public static partial class Extensions
     public IEnumerator<T> GetEnumerator()
     {
       using var scope =
-        Tracer?.Scope(Name, first ? "GetEnumerator" : "GetEnumerator.Rescan");
+        Tracer?.Scope(Name, next ? "GetEnumerator.Rescan" : "GetEnumerator");
 
-      first = false;
+      next = true;
 
-      using var enumerator = Source!.GetEnumerator();
-
-      scope?.Add(enumerator);
-
-      try
+      foreach(var item in Source!)
       {
-        while(enumerator.MoveNext())
-        {
-          yield return enumerator.Current;
-        }
-      }
-      finally
-      {
-        scope?.Release(enumerator);
+        yield return item;
       }
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private bool first = true;
+    private bool next;
   }
 
-  private class TraceableCollection<T, C> : TraceableEnumerable<T, C>, ICollection<T>
-    where C : ICollection<T>
+  private class TraceableCollection<T, C>: 
+    TraceableEnumerable<T, C>, ICollection<T>
+    where C: ICollection<T>
   {
     public int Count
     {
@@ -265,8 +227,8 @@ public static partial class Extensions
     public bool Remove(T item) => throw new NotImplementedException();
   }
 
-  private class TraceableList<T, C> : TraceableCollection<T, C>, IList<T>
-    where C : IList<T>
+  private class TraceableList<T, C>: TraceableCollection<T, C>, IList<T>
+    where C: IList<T>
   {
     public T this[int index]
     {
@@ -286,7 +248,8 @@ public static partial class Extensions
       return Source!.IndexOf(item);
     }
 
-    public void Insert(int index, T item) => throw new NotImplementedException();
+    public void Insert(int index, T item) => 
+      throw new NotImplementedException();
 
     public void RemoveAt(int index) => throw new NotImplementedException();
   }

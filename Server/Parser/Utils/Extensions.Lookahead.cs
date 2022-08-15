@@ -1,4 +1,12 @@
+using System.Collections;
+
 namespace NesterovskyBros.Utils;
+
+/// <summary>
+/// A enumerable that might need to be disposed.
+/// </summary>
+/// <typeparam name="T">An element type.</typeparam>
+public interface IDisposableEnumerable<out T>: IEnumerable<T>, IDisposable { }
 
 /// <summary>
 /// Extension functions to simplify streaming processing.
@@ -14,7 +22,8 @@ public static partial class Extensions
   /// </para>
   /// <para>
   /// <b>Note:</b> wraping enumerable with <c>Lookahaead()</c> in certain cases 
-  /// may leave source enumerator not disposed.
+  /// may leave source enumerator not disposed, thus enumerable returned from this method 
+  /// implements <see cref="IDisposable"/>.
   /// </para>
   /// </summary>
   /// <typeparam name="T">An element type of the source.</typeparam>
@@ -22,23 +31,34 @@ public static partial class Extensions
   /// <param name="depth">A lookahead depth. Default value is 1.</param>
   /// <param name="enumerators">A number of enumerators to cache.</param>
   /// <returns>Enumerable with lookahead capability.</returns>
-  public static IEnumerable<T> Lookahead<T>(
+  public static IDisposableEnumerable<T> Lookahead<T>(
     this IEnumerable<T> source, 
     int depth = 1,
-    int enumerators = 1)
-  {
-    if (enumerators <= 0)
+    int enumerators = 1) =>
+    new LookupEnumerable<T>
     {
-      enumerators = 1;
+      source = source,
+      depth = depth,
+      enumerators = enumerators <= 0 ? 1 : enumerators
+    };
+
+  private class LookupEnumerable<T>: IDisposableEnumerable<T>
+  {
+    public IEnumerable<T>? source;
+    public int depth;
+    public int enumerators;
+
+    public void Dispose()
+    {
+      foreach(var item in cache)
+      {
+        item.enumerator.Dispose();
+      }
+
+      cache.Clear();
     }
 
-    var version = 0;
-    var cache = 
-      new List<(IEnumerator<T> enumerator, int index, int version)>();
-    var buffer = new List<T>();
-    var hasMore = default(bool?);
-
-    IEnumerable<T> processor()
+    public IEnumerator<T> GetEnumerator()
     {
       var index = 0;
 
@@ -75,7 +95,7 @@ public static partial class Extensions
             {
               var item = cache[i];
 
-              if ((cacheIndex == -1) || 
+              if ((cacheIndex == -1) ||
                 (cache[cacheIndex].version < item.version))
               {
                 cacheIndex = i;
@@ -86,7 +106,7 @@ public static partial class Extensions
           }
 
           cacheIndex = cache.Count;
-          cache.Add((enumerator: source.GetEnumerator(), 0, version));
+          cache.Add((enumerator: source!.GetEnumerator(), 0, version));
         }
 
         var cacheItem = cache[cacheIndex];
@@ -140,6 +160,12 @@ public static partial class Extensions
       }
     }
 
-    return processor();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    private int version = 0;
+    private List<(IEnumerator<T> enumerator, int index, int version)> cache = 
+      new();
+    private List<T> buffer = new();
+    private bool? hasMore;
   }
 }
