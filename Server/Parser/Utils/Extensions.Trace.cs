@@ -3,9 +3,9 @@ namespace NesterovskyBros.Utils;
 using System.Collections;
 using System.Diagnostics;
 
-public interface ITracer: IDisposable
+public interface ITracer
 {
-  IDisposable? Scope(string? name, string action);
+  IDisposable Scope(string name, string action, int index);
 }
 
 public interface ITraceable
@@ -18,109 +18,67 @@ public class Tracer: ITracer
 {
   public class Statistics
   {
+    public int ID { get; set; }
+    public string? Caller { get; set; } 
     public string? Name { get; set; }
-    public string? Action { get; set; }
     public long Count { get; set; }
+    public long DistinctCount { get; set; }
     public long Duration { get; set; }
+    public List<string> Actions { get; } = new();
   }
 
-  public Dictionary<(string? name, string? action), Statistics> 
-    CollectedStatistics { get; } = new();
+  public Dictionary<string, Statistics> CollectedStatistics { get; } = new();
 
-  public void Dispose()
+  public IDisposable Scope(string name, string action, int index)
   {
-    foreach(var resource in resources)
+    if (!CollectedStatistics.TryGetValue(name, out var statistics))
     {
-      resource.Dispose();
-    }
-
-    resources.Clear();
-  }
-
-  public Statistics[] GetStatisticsByPath()
-  {
-    var items = CollectedStatistics.Values.
-      Select(item => new Statistics
-      {
-        Name = item.Name,
-        Action = item.Action,
-        Count = item.Count,
-        Duration = item.Duration
-      }).
-      ToArray();
-
-    var found = true;
-
-    while(found)
-    {
-      found = false;
-
-      foreach(var item in items)
-      {
-        if ((item.Name == null) || item.Name.StartsWith('/'))
-        {
-          continue;
-        }
-
-        var p = item.Name?.IndexOf('/') ?? -1;
-
-        if (p != -1)
-        {
-          var prefix = "/" + item.Name![0..p];
-
-          var path = items.
-            FirstOrDefault(other =>
-              (other != item) &&
-              (other.Name?.EndsWith(prefix) == true))?.
-            Name;
-
-          if (path != null)
-          {
-            found = true;
-            item.Name = path + item.Name[p..];
-          }
-        }
-      }
-    }
-
-    Array.Sort(items, (f, s) => string.Compare(f.Name, s.Name));
-
-    return items;
-  }
-
-  public IDisposable? Scope(string? name, string? action)
-  {
-    if (!CollectedStatistics.TryGetValue((name, action), out var statistics))
-    {
-      statistics = new()
-      {
-        Name = name,
-        Action = action
+      CollectedStatistics[name] = statistics = new() 
+      { 
+        ID = ++lastID,
+        Name = name, 
+        Caller = currentScope?.statistics!.Name
       };
-
-      CollectedStatistics[(name, action)] = statistics;
     }
 
-    return new TracerScope
+    var scope = new TracerScope
     {
+      callerScope = currentScope,
       tracer = this,
       timestamp  = Stopwatch.GetTimestamp(),
       statistics = statistics
     };
+
+    ++statistics.Count;
+
+    if(index == 0)
+    {
+      ++statistics.DistinctCount;
+    }
+
+    if (!statistics.Actions.Contains(action))
+    {
+      statistics.Actions.Add(action);
+    }
+
+    currentScope = scope;
+
+    return scope;
   }
 
-  private readonly HashSet<IDisposable> resources = 
-    new(ReferenceEqualityComparer.Instance);
+  private int lastID;
+  private TracerScope? currentScope;
 
   private class TracerScope: IDisposable
   {
+    public TracerScope? callerScope;
     public Tracer? tracer;
     public Statistics? statistics;
     public long timestamp;
 
     public void Dispose()
     {
-      ++statistics!.Count;
+      tracer!.currentScope = callerScope;
       statistics!.Duration += Stopwatch.GetTimestamp() - timestamp;
     }
   }
@@ -174,10 +132,9 @@ public static partial class Extensions
 
     public IEnumerator<T> GetEnumerator()
     {
-      using var scope =
-        Tracer?.Scope(Name, next ? "GetEnumerator.Rescan" : "GetEnumerator");
+      using var scope = Tracer?.Scope(Name!, "GetEnumerator", index);
 
-      next = true;
+      ++index;
 
       foreach(var item in Source!)
       {
@@ -187,7 +144,7 @@ public static partial class Extensions
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private bool next;
+    protected int index;
   }
 
   private class TraceableCollection<T, C>: 
@@ -198,7 +155,7 @@ public static partial class Extensions
     {
       get
       {
-        using var scope = Tracer?.Scope(Name, "Count");
+        using var scope = Tracer?.Scope(Name, "Count", index++);
 
         return Source!.Count;
       }
@@ -212,14 +169,14 @@ public static partial class Extensions
 
     public bool Contains(T item)
     {
-      using var scope = Tracer?.Scope(Name, "Contains");
+      using var scope = Tracer?.Scope(Name, "Contains", index++);
 
       return Source!.Contains(item);
     }
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-      using var scope = Tracer?.Scope(Name, "CopyTo");
+      using var scope = Tracer?.Scope(Name, "CopyTo", index++);
 
       Source!.CopyTo(array, arrayIndex);
     }
@@ -234,7 +191,7 @@ public static partial class Extensions
     {
       get
       {
-        using var scope = Tracer?.Scope(Name, "Index");
+        using var scope = Tracer?.Scope(Name, "Index", index++);
 
         return Source![index];
       }
@@ -243,7 +200,7 @@ public static partial class Extensions
 
     public int IndexOf(T item)
     {
-      using var scope = Tracer?.Scope(Name, "IndexOf");
+      using var scope = Tracer?.Scope(Name, "IndexOf", index++);
 
       return Source!.IndexOf(item);
     }

@@ -88,14 +88,14 @@ public class Report1203001: Report<Report1203001.Account>
         )).
         Where(item => item.type != 'E')).
       SelectMany(item => item).
-      Trace("ReportPages/ReportRow", tracer).
+      Trace("ReportRow", tracer).
       GroupAdjacent(startsAt: row => row.text.
         Contains(" ------------------------------------------------------------------------------------------------------------------------------------")).
-      Trace("ReportRow/AccountRows", tracer).
+      Trace("AccountRows", tracer).
       Select(rows => rows.
         Skip(1).
         GroupAdjacent(startsAt: row => row.type != ' ').
-        Trace("AccountRows/Section", tracer).
+        Trace("Section", tracer).
         Aggregate(
           new Account
           {
@@ -154,7 +154,7 @@ public class Report1203001: Report<Report1203001.Account>
                       EmployeeCode = TryInt(row.text, 7, 5),
                       Station = TryInt(row.text, 1, 4)
                     }).
-                    Trace("Section/Transactions", tracer).
+                    Trace("Transactions", tracer).
                     ToArray()
                 };
 
@@ -187,7 +187,7 @@ public class Report1203001: Report<Report1203001.Account>
                       Amount = TryDecimal(row.text, 23, 20),
                       EmployeeID = TryLong(row.text, 6, 16)
                     }).
-                    Trace("Section/Operations", tracer).
+                    Trace("Operations", tracer).
                     ToArray()
                 };
 
@@ -201,6 +201,6 @@ public class Report1203001: Report<Report1203001.Account>
 
             return account;
           })).
-      Trace("Section/Account", tracer);
+      Trace("Account", tracer);
   }
 }

@@ -6,7 +6,7 @@ namespace NesterovskyBros.Utils;
 /// A enumerable that might need to be disposed.
 /// </summary>
 /// <typeparam name="T">An element type.</typeparam>
-public interface IDisposableEnumerable<out T>: IEnumerable<T>, IDisposable { }
+public interface IEnumerableResource<out T>: IEnumerable<T>, IDisposable { }
 
 /// <summary>
 /// Extension functions to simplify streaming processing.
@@ -31,7 +31,7 @@ public static partial class Extensions
   /// <param name="depth">A lookahead depth. Default value is 1.</param>
   /// <param name="enumerators">A number of enumerators to cache.</param>
   /// <returns>Enumerable with lookahead capability.</returns>
-  public static IDisposableEnumerable<T> Lookahead<T>(
+  public static IEnumerableResource<T> Lookahead<T>(
     this IEnumerable<T> source, 
     int depth = 1,
     int enumerators = 1) =>
@@ -42,7 +42,7 @@ public static partial class Extensions
       enumerators = enumerators <= 0 ? 1 : enumerators
     };
 
-  private class LookupEnumerable<T>: IDisposableEnumerable<T>
+  private class LookupEnumerable<T>: IEnumerableResource<T>
   {
     public IEnumerable<T>? source;
     public int depth;

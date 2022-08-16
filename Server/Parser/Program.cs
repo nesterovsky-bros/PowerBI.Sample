@@ -21,7 +21,7 @@ var xmlSettings = new XmlWriterSettings()
   ConformanceLevel = ConformanceLevel.Fragment
 };
 
-using var tracer = new Tracer();
+var tracer = new Tracer();
 var stopwatch = Stopwatch.StartNew();
 
 using(var writer = XmlWriter.Create(output, xmlSettings))
@@ -40,13 +40,14 @@ stopwatch.Stop();
 
 Console.WriteLine($"Execution time: {stopwatch.Elapsed}s.\n");
 
-Console.WriteLine("Action,Count,Avg,Duration,Path");
+Console.WriteLine("Name,Caller,Count,DistinctCount,Avg,Duration,Actions");
 
-foreach(var item in tracer.GetStatisticsByPath())
+foreach(var item in tracer.CollectedStatistics.Values.OrderBy(item => item.ID))
 {
   Console.WriteLine(
-    $@"{item.Action},{item.Count},{
+    $@"{item.Name},{item.Caller},{item.Count},{item.DistinctCount},{
       (double)item.Duration / item.Count / 
-        TimeSpan.TicksPerMillisecond :0.##},{
-      (double)item.Duration / TimeSpan.TicksPerMillisecond:0.##},{item.Name}");
+      TimeSpan.TicksPerMillisecond :0.##},{
+      (double)item.Duration / TimeSpan.TicksPerMillisecond:0.##},{
+      string.Join(',', item.Actions.OrderBy(item => item))}");
 }

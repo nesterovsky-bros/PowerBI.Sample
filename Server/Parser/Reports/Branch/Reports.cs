@@ -40,7 +40,7 @@ public class Reports
     ITracer? tracer = null,
     Func<IEnumerable<Page>, ITracer?, IEnumerable<object>>? handler = null) =>
     lines.
-      Trace("/Line", tracer).
+      Trace("Line", tracer).
       GroupAdjacent(startsAt: line => line.StartsWith("1")).
       Select(lines => lines.ToArray()).
       Select((lines, index) => new Page
@@ -53,7 +53,7 @@ public class Reports
         RecipientNumber = Int(lines[0], 37, 2),
         Lines = lines
       }).
-      Trace("Line/Page", tracer).
+      Trace("Page", tracer).
       GroupAdjacent(page =>
       (
         page.Report,
@@ -62,9 +62,9 @@ public class Reports
         page.RecipientType,
         page.RecipientNumber
       )).
-      Trace("Page/ReportPages", tracer).
+      Trace("ReportPages", tracer).
       Select(pages => handler != null ?
         handler(pages, tracer) : DefaultHandler(pages, tracer)).
-      Trace("ReportPages/Report", tracer).
+      Trace("Report", tracer).
       SelectMany(item => item);
 }
