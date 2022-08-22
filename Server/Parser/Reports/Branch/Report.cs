@@ -12,7 +12,7 @@ public record Page
   public int DestinationBranch { get; init; }
   public string? RecipientType { get; init; }
   public int RecipientNumber { get; init; }
-  public string[]? Lines { get; init; }
+  public string[] Lines { get; init; } = null!;
 }
 
 public interface IReport<out T>

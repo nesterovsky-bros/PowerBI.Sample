@@ -6,6 +6,27 @@ namespace Parser.Reports.Branch;
 
 public class Report1203001: Report<Report1203001.Account>
 {
+  public record Account
+  {
+    public int Report { get; init; }
+    public DateTime CorrectnessDate { get; init; }
+    public int DestinationBranch { get; init; }
+    public string? RecipientType { get; init; }
+    public int RecipientNumber { get; init; }
+    public int Page { get; init; }
+    public int Row { get; init; }
+    public DateTime? AlertDate { get; init; }
+    public int AccountNumber { get; init; }
+    public string? AccountName { get; init; }
+    public string? Recipient { get; init; }
+    public int AlertType { get; init; }
+    public string? IdType { get; init; }
+    public string? AlertComment { get; init; }
+    public string? Comment { get; init; }
+    public Transaction[]? Transactions { get; init; }
+    public Operation[]? Operations { get; init; }
+  };
+
   public record Transaction
   {
     public int Page { get; init; }
@@ -37,57 +58,31 @@ public class Report1203001: Report<Report1203001.Account>
     public long? EmployeeID { get; init; }
   }
 
-  public record Account
-  {
-    public int Report { get; init; }
-    public DateTime CorrectnessDate { get; init; }
-    public int DestinationBranch { get; init; }
-    public string? RecipientType { get; init; }
-    public int RecipientNumber { get; init; }
-    public int Page { get; init; }
-    public int Row { get; init; }
-    public DateTime? AlertDate { get; init; }
-    public int AccountNumber { get; init; }
-    public string? AccountName { get; init; }
-    public string? Recipient { get; init; }
-    public int AlertType { get; init; }
-    public string? IdType { get; init; }
-    public string? AlertComment { get; init; }
-    public string? Comment { get; init; }
-    public Transaction[]? Transactions { get; init; }
-    public Operation[]? Operations { get; init; }
-  };
-
   public override int ReportNumber => 1203001;
 
   public override IEnumerable<Account> Parse(
     IEnumerable<Page> pages,
-    ITracer? tracer)
-  {
-    var page = pages.First();
-
-    return pages.
-      Where(page => page.Lines!.Length > 8 &&
+    ITracer? tracer) =>
+    pages.
+      Where(page => page.Lines.Length > 8 &&
         !page.Lines[4].
           Contains("*****     ! ! ! ! !   ה ז   ף י נ ס ל   ם ו י ה   ת ו ע ו נ ת   ן י א     *****")).
-      Select(page => page.Lines!.
+      SelectMany(page => page.Lines.
         SkipLast(5).
         Skip(3).
         Select((text, index) =>
         (
-          page: page.PageNumber,
+          page,
           row: index + 4,
           text,
-          type:
-            // Empty
-            text.StartsWith("0") || string.IsNullOrWhiteSpace(text) ? 'E' :
+          type: text.StartsWith("0") || 
+            string.IsNullOrWhiteSpace(text) ? 'E' : // Empty
             text.EndsWith("|ןח .סמ") ? 'I' : // Info
             text.EndsWith("| רוקמ") ? 'T' : // Transaction
             text.EndsWith(":תורעה") ? 'C' : // Comment
             text.EndsWith("|  עוציב .ת") ? 'O' : ' ' // Operation; Other
         )).
         Where(item => item.type != 'E')).
-      SelectMany(item => item).
       Trace("ReportRow", tracer).
       GroupAdjacent(startsAt: row => row.text.
         Contains(" ------------------------------------------------------------------------------------------------------------------------------------")).
@@ -97,14 +92,7 @@ public class Report1203001: Report<Report1203001.Account>
         GroupAdjacent(startsAt: row => row.type != ' ').
         Trace("Section", tracer).
         Aggregate(
-          new Account
-          {
-            Report = page.Report,
-            CorrectnessDate = page.CorrectnessDate,
-            DestinationBranch = page.DestinationBranch,
-            RecipientType = page.RecipientType!,
-            RecipientNumber = page.RecipientNumber
-          },
+          new Account(),
           (account, group) =>
           {
             var head = group.First();
@@ -117,7 +105,12 @@ public class Report1203001: Report<Report1203001.Account>
 
                 account = account with
                 {
-                  Page = row.page,
+                  Report = row.page.Report,
+                  CorrectnessDate = row.page.CorrectnessDate,
+                  DestinationBranch = row.page.DestinationBranch,
+                  RecipientType = row.page.RecipientType,
+                  RecipientNumber = row.page.RecipientNumber,
+                  Page = row.page.PageNumber,
                   Row = row.row,
                   AlertDate = TryDate(row.text, 67, 8),
                   AccountNumber = Int(row.text, 127, 6),
@@ -139,7 +132,7 @@ public class Report1203001: Report<Report1203001.Account>
                     Where(row => !row.text.EndsWith(":טרופמ רואת  ")).
                     Select(row => new Transaction
                     {
-                      Page = row.page,
+                      Page = row.page.PageNumber,
                       Row = row.row,
                       Origin = String(row.text, 128, 5, bidi: true),
                       Description = String(row.text, 113, 14, bidi: true),
@@ -177,7 +170,7 @@ public class Report1203001: Report<Report1203001.Account>
                     Skip(2).
                     Select(row => new Operation
                     {
-                      Page = row.page,
+                      Page = row.page.PageNumber,
                       Row = row.row,
                       Date = TryDate(row.text, 123, 10),
                       CardName = String(row.text, 97, 25, bidi: true),
@@ -202,5 +195,4 @@ public class Report1203001: Report<Report1203001.Account>
             return account;
           })).
       Trace("Account", tracer);
-  }
 }

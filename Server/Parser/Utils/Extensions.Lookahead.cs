@@ -44,7 +44,7 @@ public static partial class Extensions
 
   private class LookupEnumerable<T>: IEnumerableResource<T>
   {
-    public IEnumerable<T>? source;
+    public IEnumerable<T> source = null!;
     public int depth;
     public int enumerators;
 
@@ -163,9 +163,9 @@ public static partial class Extensions
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     private int version = 0;
-    private List<(IEnumerator<T> enumerator, int index, int version)> cache = 
-      new();
-    private List<T> buffer = new();
+    private readonly List<(IEnumerator<T> enumerator, int index, int version)>
+      cache = new();
+    private readonly List<T> buffer = new();
     private bool? hasMore;
   }
 }

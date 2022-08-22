@@ -10,7 +10,7 @@ public interface ITracer
 
 public interface ITraceable
 {
-  public string? Name { get; }
+  public string Name { get; }
   public ITracer? Tracer { get; }
 }
 
@@ -19,8 +19,8 @@ public class Tracer: ITracer
   public class Statistics
   {
     public int ID { get; set; }
-    public string? Caller { get; set; } 
-    public string? Name { get; set; }
+    public string? Caller { get; set; }
+    public string Name { get; set; } = null!;
     public long Count { get; set; }
     public long DistinctCount { get; set; }
     public long Duration { get; set; }
@@ -51,7 +51,7 @@ public class Tracer: ITracer
 
     ++statistics.Count;
 
-    if(index == 0)
+    if (index == 0)
     {
       ++statistics.DistinctCount;
     }
@@ -72,8 +72,8 @@ public class Tracer: ITracer
   private class TracerScope: IDisposable
   {
     public TracerScope? callerScope;
-    public Tracer? tracer;
-    public Statistics? statistics;
+    public Tracer tracer = null!;
+    public Statistics statistics = null!;
     public long timestamp;
 
     public void Dispose()
@@ -126,9 +126,9 @@ public static partial class Extensions
   private class TraceableEnumerable<T, C>: ITraceable, IEnumerable<T>
     where C: IEnumerable<T>
   {
-    public string? Name { get; init; }
+    public string Name { get; init; } = null!;
     public ITracer? Tracer { get; init; }
-    public C? Source { get; init; }
+    public C Source { get; init; } = default!;
 
     public IEnumerator<T> GetEnumerator()
     {
@@ -136,7 +136,7 @@ public static partial class Extensions
 
       ++index;
 
-      foreach(var item in Source!)
+      foreach(var item in Source)
       {
         yield return item;
       }
@@ -155,9 +155,9 @@ public static partial class Extensions
     {
       get
       {
-        using var scope = Tracer?.Scope(Name, "Count", index++);
+        using var scope = Tracer?.Scope(Name!, "Count", index++);
 
-        return Source!.Count;
+        return Source.Count;
       }
     }
 
@@ -169,16 +169,16 @@ public static partial class Extensions
 
     public bool Contains(T item)
     {
-      using var scope = Tracer?.Scope(Name, "Contains", index++);
+      using var scope = Tracer?.Scope(Name!, "Contains", index++);
 
-      return Source!.Contains(item);
+      return Source.Contains(item);
     }
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-      using var scope = Tracer?.Scope(Name, "CopyTo", index++);
+      using var scope = Tracer?.Scope(Name!, "CopyTo", index++);
 
-      Source!.CopyTo(array, arrayIndex);
+      Source.CopyTo(array, arrayIndex);
     }
 
     public bool Remove(T item) => throw new NotImplementedException();
@@ -191,18 +191,18 @@ public static partial class Extensions
     {
       get
       {
-        using var scope = Tracer?.Scope(Name, "Index", index++);
+        using var scope = Tracer?.Scope(Name!, "Index", index++);
 
-        return Source![index];
+        return Source[index];
       }
       set => throw new NotImplementedException();
     }
 
     public int IndexOf(T item)
     {
-      using var scope = Tracer?.Scope(Name, "IndexOf", index++);
+      using var scope = Tracer?.Scope(Name!, "IndexOf", index++);
 
-      return Source!.IndexOf(item);
+      return Source.IndexOf(item);
     }
 
     public void Insert(int index, T item) => 
